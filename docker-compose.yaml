@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  db:
+    image: timescale/timescaledb-ha:pg17
+    environment:
+      POSTGRES_PASSWORD: password
+    expose:
+      - "5432"
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app
+    depends_on:
+      - db
+
+  fe:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./fe:/app
+    depends_on:
+      - api
+    command: >
+      sh -c "npm run dev"
