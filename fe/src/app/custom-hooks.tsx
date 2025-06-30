@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { OptimisedValues, PortfolioItem } from "./interfaces";
 
-export const API_URL = "http://localhost:8000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useCurrentPrice(symbols: string[]) {
   return useQuery({

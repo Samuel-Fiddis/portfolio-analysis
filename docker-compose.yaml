@@ -37,5 +37,7 @@ services:
       - ./fe:/app
     depends_on:
       - api
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
     command: >
       sh -c "npm run dev"
