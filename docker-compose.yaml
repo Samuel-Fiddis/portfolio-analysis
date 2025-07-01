@@ -5,8 +5,26 @@ services:
     image: timescale/timescaledb-ha:pg17
     environment:
       POSTGRES_PASSWORD: password
+    volumes:
+      - ./infra/db/:/docker-entrypoint-initdb.d/init_scripts
     ports:
       - "5433:5432"
+
+  db-init:
+    image: timescale/timescaledb-ha:pg17
+    depends_on:
+      - db
+    volumes:
+      - ./infra/db:/init-scripts:ro
+      - ./infra/db/init.sh:/run-init.sh:ro
+    environment:
+      - PGHOST=db
+      - PGPORT=5432
+      - PGDATABASE=postgres
+      - PGUSER=postgres
+      - PGPASSWORD=password
+    command: ["/run-init.sh"]
+    restart: "no"
 
   api:
     build:

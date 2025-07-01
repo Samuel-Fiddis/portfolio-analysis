@@ -4,27 +4,13 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   Legend,
   Scatter,
 } from "recharts";
 import { OptimisationResult } from "./interfaces";
 
-const lineColors = [
-  "#8884d8", // purple
-  "#82ca9d", // green
-  "#ff7300", // orange
-  "#0088FE", // blue
-  "#FF8042", // orange-red
-  "#00C49F", // teal
-  "#FFBB28", // yellow
-  "#A28FD0", // lavender
-  "#FF6699", // pink
-  "#33CCFF", // light blue
-];
-
-const xBoarderBuffer = 0.02; // 2% buffer for x-axis
-const yBoarderBuffer = 0.05; // 2% buffer for y-axis
+const xBoarderBuffer = 0.2;
+const yBoarderBuffer = 0.2;
 
 export default function EfficiencyFrontierChart({
   optimisedPortfolios,
@@ -33,10 +19,22 @@ export default function EfficiencyFrontierChart({
 }: {
   optimisedPortfolios: OptimisationResult[];
   selectedPortfolio?: OptimisationResult;
-  yourPortfolio: OptimisationResult;
+  yourPortfolio?: OptimisationResult | null;
 }) {
-  const stdDevs = optimisedPortfolios.map(p => p.std_dev);
-  const returns = optimisedPortfolios.map(p => p.return);
+  const stdDevs = optimisedPortfolios.map((p) => p.std_dev);
+  const returns = optimisedPortfolios.map((p) => p.return);
+
+  // Calculate min/max and range for each axis
+  const minStdDev = Math.min(...stdDevs);
+  const maxStdDev = Math.max(...stdDevs);
+  const stdDevRange = maxStdDev - minStdDev;
+
+  const minReturn = Math.min(...returns);
+  const maxReturn = Math.max(...returns);
+  const returnRange = maxReturn - minReturn;
+
+  const xBuffer = stdDevRange * xBoarderBuffer;
+  const yBuffer = returnRange * yBoarderBuffer;
 
   const fontSize = 14;
 
@@ -51,15 +49,10 @@ export default function EfficiencyFrontierChart({
       <XAxis
         type="number"
         dataKey="std_dev"
-        domain={[(dataMin) => {
-          const min = Math.min(...stdDevs);
-          return min * (1 - xBoarderBuffer);
-        },
-        (dataMax) => {
-          
-          const max = Math.max(...stdDevs);
-          return max * (1 + xBoarderBuffer);
-        }]}
+        domain={[
+          () => minStdDev - xBuffer,
+          () => maxStdDev + xBuffer,
+        ]}
         tickFormatter={(value) => value.toFixed(2)}
         label={{
           value: "Standard Deviation (Risk %)",
@@ -71,16 +64,11 @@ export default function EfficiencyFrontierChart({
       <YAxis
         dataKey="return"
         type="number"
-        domain={[(dataMin) => {
-          const min = Math.min(...returns);
-          return min * (1 - yBoarderBuffer);
-        },
-        (dataMax) => {
-          const max = Math.max(...returns);
-          return max * (1 + yBoarderBuffer);
-        }
-      ]}
-      tickFormatter={(value) => value.toFixed(2)}
+        domain={[
+          () => minReturn - yBuffer,
+          () => maxReturn + yBuffer,
+        ]}
+        tickFormatter={(value) => value.toFixed(2)}
         label={{
           value: "Annualised Return (%)",
           angle: -90,

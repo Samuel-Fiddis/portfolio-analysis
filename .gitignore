@@ -1,6 +1,9 @@
 pa/
 notebooks/
-infra/
+infra/config/
+infra/k8s/
+infra/local_base/
+infra/local_k8s/
 
 *__pycache__/
 *.pyc
