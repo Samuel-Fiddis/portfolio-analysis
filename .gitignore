@@ -1,0 +1,8 @@
+pa/
+notebooks/
+infra/
+
+*__pycache__/
+*.pyc
+
+.env

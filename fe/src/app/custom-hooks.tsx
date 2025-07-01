@@ -40,7 +40,7 @@ export function useCurrencyConversion(currencies: string[]) {
 
 export function usePortfolioOptimisation(portfolio: PortfolioItem[]) {
   return useQuery<OptimisedValues>({
-    queryKey: ["portfolioOptimise"],
+    queryKey: ["portfolioOptimise", portfolio.map(item => item.symbol)],
     queryFn: async () => {
       const response = await fetch(`${API_URL}/portfolio/optimise`, {
         method: "POST",

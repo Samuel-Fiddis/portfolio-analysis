@@ -5,8 +5,8 @@ services:
     image: timescale/timescaledb-ha:pg17
     environment:
       POSTGRES_PASSWORD: password
-    expose:
-      - "5432"
+    ports:
+      - "5433:5432"
 
   api:
     build:

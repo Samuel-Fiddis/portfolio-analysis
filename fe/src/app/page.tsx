@@ -5,13 +5,15 @@ import PortfolioDataTable from "./portfolio";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OptimisationSlider } from "./optimisation-slider";
-import { PortfolioItem } from "./interfaces";
+import { OptimisationResult, PortfolioItem } from "./interfaces";
 import {
   useCurrentPrice,
   useCurrencyConversion,
   usePortfolioOptimisation,
 } from "./custom-hooks";
 import { Spinner } from "@/components/custom/spinner";
+import EfficiencyFrontierChart from "./efficiency-frontier-chart";
+import { getPortfolioReturn, getPortfolioStandardDeviation } from "./analysis-functions";
 
 const queryClient = new QueryClient();
 
@@ -57,15 +59,9 @@ function MainApp() {
       return quote
         ? {
             ...item,
-            sharePrice: Number(quote.price?.toFixed(2)),
-            value: Number(value.toFixed(2)),
-            yourAllocation:
-              Number(
-                (
-                  ((value * currencyRates?.[item.currency]) / totalValue) *
-                  100
-                ).toFixed(2),
-              ) || 0,
+            sharePrice: quote.price,
+            value: value,
+            yourAllocation: ((value * currencyRates?.[item.currency]) / totalValue) * 100,
             sharePriceDate: quote.timestamp,
           }
         : item;
@@ -84,6 +80,24 @@ function MainApp() {
     isFetching: isOptimising,
   } = usePortfolioOptimisation(portfolioWithQuotes);
 
+  const yourPortfolio = useMemo(() => {
+    if (!optimisationData?.stock_stats) return null;
+    console.log(optimisationData?.stock_stats)
+    return {
+      return: optimisationData?.stock_stats.avg_return
+        ? getPortfolioReturn(portfolioWithQuotes, optimisationData.stock_stats.avg_return)
+        : 0,
+      std_dev: optimisationData?.stock_stats.std_dev
+        ? getPortfolioStandardDeviation(
+            portfolioWithQuotes,
+            optimisationData?.stock_stats.std_dev,
+            optimisationData?.stock_stats.corr_matrix,
+          )
+        : 0,
+    } as OptimisationResult;
+  }, [optimisationData, portfolioWithQuotes]);
+
+
   const optimisationResults = optimisationData?.optimisation_results ?? [];
 
   // Attach optimised allocation to each item
@@ -95,7 +109,7 @@ function MainApp() {
     );
     return portfolioWithQuotes.map((item) => ({
       ...item,
-      optimisedAllocation: Number((weights[item.symbol] * 100).toFixed(2)) || 0,
+      optimisedAllocation: weights[item.symbol] * 100,
     }));
   }, [portfolioWithQuotes, optimisationResults, gamma]);
 
@@ -132,6 +146,11 @@ function MainApp() {
               gamma={gamma}
               setGamma={setGamma}
               optimisationResults={optimisationResults}
+            />
+            <EfficiencyFrontierChart
+              optimisedPortfolios={optimisationResults}
+              selectedPortfolio={optimisationResults[gamma]}
+              yourPortfolio={yourPortfolio}
             />
           </>
         )}

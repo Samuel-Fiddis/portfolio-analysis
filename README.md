@@ -25,7 +25,9 @@ Then simply run the docker compose file with
   docker compose up --build
 ```
 
+and connect to `localhost:3000` in your local browser :)
+
 ## Running Tests
 
-To run tests of the analysis and optimisation run `pytest` in the api directory.
+To test the analysis and optimisation functions run `pytest` in the api directory.
 

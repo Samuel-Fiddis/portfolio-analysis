@@ -622,7 +622,10 @@ export function getPortfolioColumns({
       header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
         <DataTableColumnHeader column={column} title="Value" />
       ),
-      cell: ({ cell }) => <div>{cell.getValue<PortfolioItem["value"]>()}</div>,
+      cell: ({ cell }) => {
+        const value = cell.getValue<PortfolioItem["value"]>();
+        return value !== undefined && value !== null ? value.toFixed(2) : "";
+      },
       meta: {
         label: "Value",
       },
@@ -633,9 +636,10 @@ export function getPortfolioColumns({
       header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
         <DataTableColumnHeader column={column} title="Share Price" />
       ),
-      cell: ({ cell }) => (
-        <div>{cell.getValue<PortfolioItem["sharePrice"]>()}</div>
-      ),
+      cell: ({ cell }) => {
+        const value = cell.getValue<PortfolioItem["sharePrice"]>();
+        return value !== undefined && value !== null ? value.toFixed(2) : "";
+      },
       meta: {
         label: "Share Price",
       },

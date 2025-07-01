@@ -22,15 +22,16 @@ export interface OptimisedValues {
   stock_stats: {
     std_dev: Record<string, number>;
     avg_return: Record<string, number>;
+    corr_matrix: Record<string, Record<string, number>>;
   };
   portfolio_stats: any;
   optimisation_results: OptimisationResult[];
 }
 export interface OptimisationResult {
-  gamma: number;
+  gamma?: number;
   std_dev: number;
   return: number;
-  sharpe_ratio_annualised: number;
+  sharpe_ratio_annualised?: number;
   weights: PortfolioWeight[];
 }
 export interface CurrentPrice {

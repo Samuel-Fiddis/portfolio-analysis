@@ -285,6 +285,7 @@ async def optimise_portfolio_route(portfolio: List[Dict[str, Any]]):
         "stock_stats": {
             "std_dev": std.to_dict(),
             "avg_return": ret.to_dict(),
+            'corr_matrix': corr_matrix.to_dict(),
         },
         "portfolio_stats": {
             "std_dev": get_portfolio_standard_deviation(
