@@ -52,7 +52,8 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./fe:/app
+      - ./fe/src:/app/src
+      - ./fe/public:/app/public
     depends_on:
       - api
     environment:

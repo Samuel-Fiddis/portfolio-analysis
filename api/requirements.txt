@@ -11,4 +11,3 @@ SQLAlchemy==2.0.41
 cvxpy==1.6.6
 scikit-learn==1.7.0
 yfinance==0.2.63
-pandas_market_calendars==5.1.1
