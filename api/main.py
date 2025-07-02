@@ -1,4 +1,5 @@
 import os
+from time import sleep
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -13,12 +14,11 @@ from pydantic import BaseModel
 from typing import Any, Dict, Union, List, Optional
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.dialects.postgresql import insert
 
 from analysis import (
     get_averages,
     get_correlation_matrix,
-    get_porfolio_return,
-    get_portfolio_standard_deviation,
     get_standard_deviation,
 )
 from optimisation import optimise_portfolio
@@ -38,20 +38,30 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
 # Connect to the PostgreSQL database
 engine = None
 
-try:
-    engine = create_engine(
-        f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    )
-    with engine.connect() as connection:
-        connection.execute(text("SELECT 1;"))
-    log.info("Database connection established successfully")
-except Exception as e:
-    log.error(f"Failed to connect to the database: {e}")
+while engine is None:
+    try:
+        engine = create_engine(
+            f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        )
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1;"))
+        log.info("Database connection established successfully")
+    except Exception as e:
+        log.error(f"Failed to connect to the database: {e}")
+        engine = None
+        sleep(5)  # Wait before retrying
 
 EQUITIES = fd.Equities()
 ETFS = fd.ETFs()
 
 API_KEY = os.getenv("FMP_API_KEY")
+
+
+class OptimisationSettings(BaseModel):
+    portfolio: List[Dict[str, Any]]
+    time_period: str = "monthly"
+    start_time: str
+    end_time: str
 
 
 class SearchCategories(BaseModel):
@@ -153,10 +163,11 @@ async def health_check():
 
 @app.post("/search", response_model=Dict[str, Any])
 async def search_instruments(search_values: SearchOptions):
-    print("Search values:", search_values)
-    if search_values.instrument_type == "Equities":
+    instrument_type = search_values.instrument_type
+    search_values.instrument_type = None
+    if instrument_type == "Equities":
         return await search_equities(search_values)
-    elif search_values.instrument_type == "ETFs":
+    elif instrument_type == "ETFs":
         return await search_etfs(search_values)
     else:
         equities = await search_equities(search_values)
@@ -221,12 +232,31 @@ async def search_etfs(search_values: ETFsSearchOptions):
 
 
 @app.post("/instruments/equities/quotes", response_model=Dict[str, Any])
-async def get_equity_instrument(symbols: List[str]):
-    tk = Toolkit(symbols, api_key=API_KEY)
-    data = tk.get_historical_data(period="monthly").loc[:, (slice(None), symbols)]
+async def get_data_from_toolkit(settings: OptimisationSettings):
+    symbols = [portfolio_item["symbol"] for portfolio_item in settings.portfolio]
+    tk = Toolkit(
+        symbols,
+        start_date=settings.start_time,
+        end_date=settings.end_time,
+        api_key=API_KEY,
+    )
+    data = tk.get_historical_data(period=settings.time_period).loc[
+        :, (slice(None), symbols)
+    ]
     data = process_historical_data(data)
-    data["trade_date"] = data["trade_date"].dt.strftime("%Y-%m")
-    insert_data_into_db(data)
+    data["trade_date"] = data["trade_date"].dt.strftime("%Y-%m-%d")
+    for symbol in settings.portfolio:
+        missing_dates = get_missing_dates(
+            data,
+            symbol["symbol"],
+            symbol["exchange"],
+            settings.time_period,
+            settings.start_time,
+            settings.end_time,
+        )
+        if len(missing_dates) > 0:
+            set_exchange_holidays(symbol["exchange"], missing_dates)
+    insert_data_into_db(data, settings.time_period)
     return data
 
 
@@ -247,33 +277,81 @@ async def get_equity_instrument_current_price(symbols: List[str]):
     return current_prices
 
 
+@app.post("/instruments/analyse", response_model=Dict[str, Any])
+async def analyse_instruments(settings: OptimisationSettings):
+    """
+    Analyse a set of instruments based on the provided settings.
+    :param settings: OptimisationSettings containing symbols, timing period, start time, and end time.
+    :return: Dictionary containing analysis results including historical data, standard deviation, and average return.
+    """
+    data = get_data_from_toolkit(settings)
+
+    std = get_standard_deviation(
+        data, input_period=settings.time_period, output_period="yearly"
+    )
+    corr_matrix = get_correlation_matrix(data)
+    ret = get_averages(data, input_period=settings.time_period, output_period="yearly")
+
+    return {
+        "std_dev": std.to_dict(),
+        "avg_return": ret.to_dict(),
+        "corr_matrix": corr_matrix.to_dict(),
+    }
+
+
 @app.post("/portfolio/optimise", response_model=Dict[str, Any])
-async def optimise_portfolio_route(portfolio: List[Dict[str, Any]]):
+async def optimise_portfolio_route(settings: OptimisationSettings):
     """Optimise a portfolio based on the provided portfolio data.
     :param portfolio: Dictionary containing portfolio data with symbols as keys and their respective values.
     :return: Dictionary containing optimisation results, historical data, standard deviation, and average return.
     """
-    portfolio_allocations = get_value_proportions(
-        portfolio
-    )  # Can get this from the frontend
+    data = read_data_from_db(settings)
 
-    symbols = [item["symbol"] for item in portfolio]
-    data = pd.read_sql_table(
-        "eod_tick", con=engine
-    )  # Really inefficient, need to fix to limit by symbols
-    data = data[data["symbol"].isin(symbols)]
-    missing_symbols = [s for s in symbols if s not in data["symbol"].unique()]
-    if missing_symbols:
-        missing_data = await get_equity_instrument(missing_symbols)
+    # Need to refetch data if symbols are missing
+    missing_portfolio = [
+        portfolio_item
+        for portfolio_item in settings.portfolio
+        if portfolio_item["symbol"] not in data["symbol"].unique()
+    ]
+    # Need to refetch data if dates are missing for any of the symbols
+    for portfolio_item in settings.portfolio:
+        missing_dates = get_missing_dates(
+            data,
+            portfolio_item["symbol"],
+            portfolio_item["exchange"],
+            settings.time_period,
+            settings.start_time,
+            settings.end_time,
+        )
+        if len(missing_dates) > 0:
+            print(f"Missing dates for {portfolio_item['symbol']}: {missing_dates}")
+            if portfolio_item["symbol"] not in missing_portfolio:
+                missing_portfolio.append(portfolio_item)
+
+    # Drop old data for the symbols that are missing
+    missing_symbols = [item["symbol"] for item in missing_portfolio]
+    data = data[
+        data["symbol"].isin(
+            [
+                item["symbol"]
+                for item in settings.portfolio
+                if (item["symbol"] not in missing_symbols)
+            ]
+        )
+    ]
+
+    if missing_portfolio:
+        settings.portfolio = missing_portfolio
+        missing_data = await get_data_from_toolkit(settings)
         data = pd.concat([data, pd.DataFrame(missing_data)])
 
-    data["trade_date"] = pd.to_datetime(data["trade_date"])
-
-    std = get_standard_deviation(data, input_period="monthly", output_period="yearly")
+    std = get_standard_deviation(
+        data, input_period=settings.time_period, output_period="yearly"
+    )
     corr_matrix = get_correlation_matrix(data)
-    ret = get_averages(data, input_period="monthly", output_period="yearly")
+    ret = get_averages(data, input_period=settings.time_period, output_period="yearly")
 
-    op = optimise_portfolio(data)
+    op = optimise_portfolio(data, settings.time_period)
 
     return {
         "optimisation_results": op,
@@ -285,13 +363,7 @@ async def optimise_portfolio_route(portfolio: List[Dict[str, Any]]):
         "stock_stats": {
             "std_dev": std.to_dict(),
             "avg_return": ret.to_dict(),
-            'corr_matrix': corr_matrix.to_dict(),
-        },
-        "portfolio_stats": {
-            "std_dev": get_portfolio_standard_deviation(
-                portfolio_allocations, std, corr_matrix
-            ),
-            "avg_return": get_porfolio_return(portfolio_allocations, ret),
+            "corr_matrix": corr_matrix.to_dict(),
         },
     }
 
@@ -324,40 +396,6 @@ def get_usd_conversion_rates(currencies: List[str]):
     return rates
 
 
-def get_value_proportions(portfolio: List[Dict[str, Any]]) -> pd.DataFrame:
-    """
-    Calculate the value proportions of each asset in the portfolio.
-    :param portfolio: List of dictionaries containing 'symbol', 'value' and 'currency' for each asset.
-    :return: DataFrame with 'symbol' and 'value_proportion' columns.
-    """
-    # Convert portfolio to DataFrame
-    df = pd.DataFrame(
-        [p for p in portfolio if "symbol" in p and "value" in p and "currency" in p]
-    )
-
-    # Calculate total value in USD
-    total_value = 0.0
-    conversion_rates = get_usd_conversion_rates(df["currency"].unique())
-
-    for index, row in df.iterrows():
-        currency = row["currency"].upper()
-        value = row["value"]
-        if currency in conversion_rates and conversion_rates[currency] is not None:
-            total_value += value * conversion_rates[currency]
-
-    # Calculate value proportions
-    if total_value == 0:
-        df["value_proportion"] = 0.0
-    else:
-        df["value_proportion"] = df.apply(
-            lambda x: (x["value"] * conversion_rates[x["currency"].upper()])
-            / total_value,
-            axis=1,
-        )
-
-    return df[["symbol", "value_proportion"]]
-
-
 def process_historical_data(data: pd.DataFrame) -> pd.DataFrame:
     data = data.stack().reset_index()
     data = data.rename(
@@ -387,5 +425,100 @@ def process_historical_data(data: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def insert_data_into_db(data):
-    data.to_sql("eod_tick", con=engine, if_exists="replace", index=False)
+def insert_data_into_db(data: pd.DataFrame, time_period: str):
+    data.to_sql(
+        f"{time_period}_historical_tick_data",
+        con=engine,
+        if_exists="append",
+        index=False,
+        method=insert_on_conflict_nothing_indices(["symbol", "trade_date"]),
+    )
+
+
+def read_data_from_db(settings: OptimisationSettings) -> pd.DataFrame:
+    symbols = [s["symbol"] for s in settings.portfolio]
+    sql_query = text(
+        f"SELECT * FROM {settings.time_period}_historical_tick_data WHERE symbol IN :symbols AND trade_date BETWEEN :start_time AND :end_time"
+    )
+    data = pd.read_sql_query(
+        sql_query,
+        con=engine,
+        params={
+            "symbols": tuple(symbols),
+            "start_time": settings.start_time,
+            "end_time": settings.end_time,
+        },
+    )
+    data["trade_date"] = pd.to_datetime(data["trade_date"])
+    return data
+
+
+def get_missing_dates(
+    data: pd.DataFrame,
+    symbol: str,
+    exchange: str,
+    time_period: str,
+    start_time: str,
+    end_time: str,
+) -> List[str]:
+    data_dates = pd.to_datetime(data[data["symbol"] == symbol]["trade_date"]).dt.date.to_list()
+    if time_period == "daily":
+        holidays = get_exchange_holidays(exchange, start_time, end_time)
+        all_dates = pd.date_range(start=start_time, end=end_time, freq="B").to_pydatetime().tolist()
+        all_dates = [d.date() for d in all_dates if d.date() not in holidays]
+    elif time_period == "monthly":
+        # Ignore holidays for monthly data
+        all_dates = pd.date_range(start=start_time, end=end_time, freq="ME").to_pydatetime().tolist()
+        all_dates = [d.date() for d in all_dates if d.date() not in data_dates]
+    missing_dates = [date for date in all_dates if date not in data_dates]
+    return missing_dates
+
+
+def get_exchange_holidays(
+    exchange: str, start_time: str, end_time: str
+) -> List[str]:
+    sql_query = text(
+        """
+        SELECT holiday_date FROM exchange_holidays
+        WHERE exchange = :exchange AND holiday_date BETWEEN :start_time AND :end_time
+    """
+    )
+    holidays = pd.read_sql_query(
+        sql_query,
+        con=engine,
+        params={"exchange": exchange, "start_time": start_time, "end_time": end_time},
+    )
+    holidays["holiday_date"] = pd.to_datetime(holidays["holiday_date"])
+    return holidays["holiday_date"].dt.date.to_list()
+
+
+def set_exchange_holidays(exchange: str, holidays: List[str]):
+    """
+    Set exchange holidays in the database.
+    :param exchange: The exchange for which to set holidays.
+    :param start_time: Start date for the holidays.
+    :param end_time: End date for the holidays.
+    :param holidays: List of holiday dates in 'YYYY-MM-DD' format.
+    """
+    df = pd.DataFrame({"exchange": exchange, "holiday_date": pd.to_datetime(holidays)})
+    df.to_sql(
+        "exchange_holidays",
+        con=engine,
+        if_exists="append",
+        index=False,
+        method=insert_on_conflict_nothing_indices(["exchange", "holiday_date"]),
+    )
+
+
+def insert_on_conflict_nothing_indices(indices):
+    def insert_on_conflict_nothing(table, conn, keys, data_iter):
+        data = [dict(zip(keys, row)) for row in data_iter]
+        stmt = (
+            insert(table.table)
+            .values(data)
+            .on_conflict_do_nothing(index_elements=indices)
+        )
+        result = conn.execute(stmt)
+        return result.rowcount
+
+    return insert_on_conflict_nothing

@@ -5,7 +5,7 @@ import PortfolioDataTable from "./portfolio";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OptimisationSlider } from "./optimisation-slider";
-import { OptimisationResult, PortfolioItem } from "./interfaces";
+import { DEFAULT_OPTIMISATION_SETTINGS, OptimisationResult, OptimisationSettings, PortfolioItem } from "./interfaces";
 import {
   useCurrentPrice,
   useCurrencyConversion,
@@ -14,6 +14,7 @@ import {
 import { Spinner } from "@/components/custom/spinner";
 import EfficiencyFrontierChart from "./efficiency-frontier-chart";
 import { getPortfolioReturn, getPortfolioStandardDeviation } from "./analysis-functions";
+import { Optimisation } from "./optimisation";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,8 @@ export default function Home() {
 
 function MainApp() {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [optimisationSettings, setOptimisationSettings] =
+    useState<OptimisationSettings>(DEFAULT_OPTIMISATION_SETTINGS);
   const [gamma, setGamma] = useState<number>(0);
 
   // Fetch current prices for portfolio symbols
@@ -78,7 +81,18 @@ function MainApp() {
     data: optimisationData,
     refetch: refetchOptimisation,
     isFetching: isOptimising,
-  } = usePortfolioOptimisation(portfolioWithQuotes);
+  } = usePortfolioOptimisation(
+    portfolio,
+    optimisationSettings.timePeriod,
+    optimisationSettings.startTime.toISOString().slice(0, 10),
+    optimisationSettings.endTime.toISOString().slice(0, 10),
+  );
+
+  const optimisationComponent = Optimisation({
+    optimisationSettings,
+    setOptimisationSettings,
+    refetchOptimisation
+  });
 
   const yourPortfolio = useMemo(() => {
     if (!optimisationData?.stock_stats) return null;
@@ -131,7 +145,9 @@ function MainApp() {
         <PortfolioDataTable
           portfolio={portfolioWithAnalysis}
           setPortfolio={setPortfolio}
-          refetchOptimisation={refetchOptimisation}
+          toolBarChildren={
+            portfolio.length > 1 && optimisationComponent
+          }
         />
         {isOptimising && (
           <div>

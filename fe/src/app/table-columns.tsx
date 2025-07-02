@@ -95,6 +95,28 @@ function getEquitiesColumns(options: EquitiesOptions) {
       enableHiding: false,
     },
     {
+      id: "exchange",
+      accessorKey: "exchange",
+      header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Exchange" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<EquitiesRow["exchange"]>()}</div>,
+      meta: {
+        label: "Exchange",
+        variant: "multiSelect",
+        options:
+          options?.exchange &&
+          options?.exchange.map((value: String) => {
+            return {
+              label: value,
+              value: value,
+            };
+          }),
+        icon: CircleDashed,
+      },
+      enableColumnFilter: true,
+    },
+    {
       id: "name",
       accessorKey: "name",
       header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
@@ -186,28 +208,6 @@ function getEquitiesColumns(options: EquitiesOptions) {
         options:
           options?.industry &&
           options?.industry.map((value: String) => {
-            return {
-              label: value,
-              value: value,
-            };
-          }),
-        icon: CircleDashed,
-      },
-      enableColumnFilter: true,
-    },
-    {
-      id: "exchange",
-      accessorKey: "exchange",
-      header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
-        <DataTableColumnHeader column={column} title="Exchange" />
-      ),
-      cell: ({ cell }) => <div>{cell.getValue<EquitiesRow["exchange"]>()}</div>,
-      meta: {
-        label: "Exchange",
-        variant: "multiSelect",
-        options:
-          options?.exchange &&
-          options?.exchange.map((value: String) => {
             return {
               label: value,
               value: value,
@@ -413,6 +413,28 @@ function getETFsColumns(options: ETFsOptions) {
       enableHiding: false,
     },
     {
+      id: "exchange",
+      accessorKey: "exchange",
+      header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Exchange" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<EquitiesRow["exchange"]>()}</div>,
+      meta: {
+        label: "Exchange",
+        variant: "multiSelect",
+        options:
+          options?.exchange &&
+          options?.exchange.map((value: String) => {
+            return {
+              label: value,
+              value: value,
+            };
+          }),
+        icon: CircleDashed,
+      },
+      enableColumnFilter: true,
+    },
+    {
       id: "name",
       accessorKey: "name",
       header: ({ column }: { column: Column<ETFsRow, unknown> }) => (
@@ -569,6 +591,18 @@ export function getPortfolioColumns({
       enableHiding: false,
     },
     {
+      id: "exchange",
+      accessorKey: "exchange",
+      header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Exchange" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<PortfolioItem["exchange"]>()}</div>,
+      meta: {
+        label: "Exchange",
+      },
+      enableHiding: false,
+    },
+    {
       id: "instrumentType",
       accessorKey: "instrumentType",
       header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
@@ -672,6 +706,20 @@ export function getPortfolioColumns({
       },
     },
     {
+      id: "yourAllocation",
+      accessorKey: "yourAllocation",
+      header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Allocation %" />
+      ),
+      cell: ({ cell }) => {
+        const value = cell.getValue<PortfolioItem["yourAllocation"]>() || 0;
+        return value && <DynamicBar value={value} max={98} />;
+      },
+      meta: {
+        label: "Allocation %",
+      },
+    },
+    {
       id: "avgReturn",
       accessorKey: "avgReturn",
       header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
@@ -700,20 +748,6 @@ export function getPortfolioColumns({
       },
       meta: {
         label: "Standard Deviation",
-      },
-    },
-    {
-      id: "yourAllocation",
-      accessorKey: "yourAllocation",
-      header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
-        <DataTableColumnHeader column={column} title="Allocation %" />
-      ),
-      cell: ({ cell }) => {
-        const value = cell.getValue<PortfolioItem["yourAllocation"]>();
-        return value && <DynamicBar value={value} max={98} />;
-      },
-      meta: {
-        label: "Allocation %",
       },
     },
     {

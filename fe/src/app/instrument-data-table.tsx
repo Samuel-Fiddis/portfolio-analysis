@@ -7,7 +7,7 @@ import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
 import { getTableColumns } from "./table-columns";
 import { API_URL } from "./custom-hooks";
-import { InstrumentType } from "./interfaces";
+import { InstrumentRow, InstrumentType } from "./interfaces";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
@@ -25,11 +25,7 @@ export default function InstrumentDataTable({
   addToPortfolio,
 }: {
   addToPortfolio: (
-    items: {
-      symbol: string;
-      currency: string;
-      instrument_type: InstrumentType;
-    }[]
+    items: InstrumentRow[]
   ) => void;
 }) {
   // Query state hooks
@@ -151,7 +147,8 @@ export default function InstrumentDataTable({
                     instrument_type: row.getValue(
                       "instrument_type"
                     ) as InstrumentType,
-                  }))
+                    exchange: row.getValue("exchange"),
+                  } as InstrumentRow))
                 )
               }
             >

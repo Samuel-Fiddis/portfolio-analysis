@@ -1,6 +1,7 @@
 export interface PortfolioItem {
   instrumentType: InstrumentType;
   symbol: string;
+  exchange: string;
   currentShares: number;
   currency: string;
   value: number;
@@ -24,7 +25,6 @@ export interface OptimisedValues {
     avg_return: Record<string, number>;
     corr_matrix: Record<string, Record<string, number>>;
   };
-  portfolio_stats: any;
   optimisation_results: OptimisationResult[];
 }
 export interface OptimisationResult {
@@ -46,7 +46,7 @@ export interface InstrumentRow {
   summary: string;
   currency: string;
   exchange: string;
-  instrument_type: string;
+  instrument_type: InstrumentType;
 }
 export interface EquitiesRow extends InstrumentRow {
   sector: string;
@@ -82,4 +82,65 @@ export interface ETFsOptions {
   category?: string[];
   family?: string[];
   exchange?: string[];
+}
+
+export interface OptimisationSettings {
+  // risklessBorrowingRate: number;
+  // risklessLendingRate: number;
+  timePeriod: "daily" | "monthly";
+  startTime: Date;
+  endTime: Date;
+}
+
+type OptimisationSettingDescription = {
+  title: string;
+  description: string;
+  type: "number" | "select" | "date";
+  step?: string;
+  min?: string;
+  options?: { value: string; label: string }[];
+};
+
+export const OPTIMISATION_SETTINGS_DESCRIPTIONS: Record<keyof OptimisationSettings, OptimisationSettingDescription> = {
+  // risklessBorrowingRate: {
+  //   title: "Riskless Borrowing Rate",
+  //   description: "The riskless borrowing rate is the interest rate at which you can borrow money without taking on any risk.",
+  //   type: "number",
+  //   step: "0.01",
+  //   min: "0",
+  // },
+  // risklessLendingRate: {
+  //   title: "Riskless Lending Rate",
+  //   description: "The riskless lending rate is the interest rate at which you can lend money without taking on any risk.",
+  //   type: "number",
+  //   step: "0.01",
+  //   min: "0",
+  // },
+  timePeriod: {
+    title: "Time Period",
+    description: "The timing period for the optimisation. This can be set to either daily or monthly.",
+    type: "select",
+    options: [
+      { value: "daily", label: "Daily" },
+      { value: "monthly", label: "Monthly" },
+    ],
+  },
+  startTime: {
+    title: "Start Time",
+    description: "The start time for the optimisation period. This should be set to the beginning of the year.",
+    type: "date",
+  },
+  endTime: {
+    title: "End Time",
+    description: "The end time for the optimisation period. This should be set to the end of the year.",
+    type: "date",
+  },
+}
+
+export const DEFAULT_OPTIMISATION_SETTINGS: OptimisationSettings = {
+  // risklessBorrowingRate: 5.0,
+  // risklessLendingRate: 3.5,
+  timePeriod: "monthly",
+  startTime: new Date(new Date().setFullYear(new Date().getFullYear() - 5, new Date().getMonth(), new Date().getDate())),
+  endTime: new Date(),
 }

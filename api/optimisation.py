@@ -4,17 +4,19 @@ import pandas as pd
 import numpy as np
 
 from analysis import (
+    adjust_averages_for_period,
+    adjust_std_dev_for_period,
     get_averages,
     get_covariance_matrix,
 )
 
 
-def optimise_portfolio(data, risk_free_rate=6.0):
+def optimise_portfolio(data, time_period):
     n = len(data["symbol"].unique())
 
     SAMPLES = 200  # Number of samples for gamma values
 
-    avg = get_averages(data, input_period="monthly", output_period="monthly")
+    avg = get_averages(data)
     cov_matrix = get_covariance_matrix(data)
 
     avg_return = avg.values.reshape(-1, 1)  # Average returns as a column vector
@@ -32,15 +34,13 @@ def optimise_portfolio(data, risk_free_rate=6.0):
     for i in range(SAMPLES):
         gamma.value = gamma_vals[i]
         prob.solve()
-        ret_annualised = ((1 + ret.value[0] / 100) ** 12 - 1) * 100
-        std_annualised = np.sqrt(risk.value) * np.sqrt(12)
+        ret_annualised = adjust_averages_for_period(ret.value[0], time_period, "yearly")
+        std_annualised = adjust_std_dev_for_period(np.sqrt(risk.value), time_period, "yearly")
         optimal_portfolios.append(
             {
                 "gamma": gamma_vals[i],
                 "std_dev": std_annualised,
                 "return": ret_annualised,
-                "sharpe_ratio_annualised": (ret_annualised - risk_free_rate)
-                / std_annualised,
                 "weights": json.loads(
                     pd.DataFrame(
                         {"symbol": avg.index, "value_proportion": w.value}

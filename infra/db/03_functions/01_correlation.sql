@@ -8,7 +8,7 @@ BEGIN
             symbol,
             change_percent
         FROM
-            eod_tick
+            monthly_historical_tick_data
     ),
     SymbolCorrelations AS (
         SELECT

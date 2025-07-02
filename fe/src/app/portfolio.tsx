@@ -3,7 +3,12 @@
 import { DataTable } from "@/components/custom/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
-import { PortfolioItem } from "./interfaces";
+import {
+  DEFAULT_OPTIMISATION_SETTINGS,
+  InstrumentRow,
+  OptimisationSettings,
+  PortfolioItem,
+} from "./interfaces";
 import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@/components/ui/button";
 import { getPortfolioColumns } from "./table-columns";
@@ -12,16 +17,18 @@ import { InstrumentSearch } from "./instrument-search";
 import { InstrumentType } from "./interfaces";
 import { SymbolSearchBox } from "./symbol-search-box";
 
+
 interface PortfolioDataTableProps {
   portfolio: PortfolioItem[];
+  toolBarChildren?: React.ReactNode;
+  toolBarChildrenLeft?: React.ReactNode;
   setPortfolio: React.Dispatch<React.SetStateAction<PortfolioItem[]>>;
-  refetchOptimisation: () => void;
 }
 
 export default function PortfolioDataTable({
   portfolio,
   setPortfolio,
-  refetchOptimisation,
+  toolBarChildren
 }: PortfolioDataTableProps) {
   // Query state hooks
   function updateShares(symbol: string, shares: number) {
@@ -38,6 +45,7 @@ export default function PortfolioDataTable({
       });
     });
   }
+
 
   const debouncedUpdateShares = useDebounceCallback(updateShares, 1000);
 
@@ -58,11 +66,7 @@ export default function PortfolioDataTable({
   });
 
   const addToPortfolio = (
-    items: {
-      symbol: string;
-      currency: string;
-      instrument_type: InstrumentType;
-    }[],
+    items: InstrumentRow[]
   ) => {
     const toAdd: PortfolioItem[] = items.map((r) => {
       return {
@@ -72,6 +76,7 @@ export default function PortfolioDataTable({
         value: 0,
         optimisedAllocation: undefined,
         currency: r.currency,
+        exchange: r.exchange,
       };
     });
     setPortfolio((prevPortfolio) => {
@@ -79,7 +84,7 @@ export default function PortfolioDataTable({
       toAdd.forEach((newItem) => {
         if (
           Array.from(newPortfolio).find(
-            (item) => item.symbol === newItem.symbol,
+            (item) => item.symbol === newItem.symbol
           ) == null
         ) {
           newPortfolio.add(newItem);
@@ -94,17 +99,11 @@ export default function PortfolioDataTable({
       <SymbolSearchBox addToPortfolio={addToPortfolio} />
       <DialogWrapper
         buttonText="Advanced Instrument Search 🔍"
-        dialogTitle="Advanced Instrument Search"
+        dialogTitle="Advanced Instrument Search 🔍"
       >
         <InstrumentSearch addToPortfolio={addToPortfolio} />
       </DialogWrapper>
     </div>
-  );
-
-  const analyseAndOptimise = portfolio.length > 1 && (
-    <Button size="sm" onClick={() => refetchOptimisation()}>
-      Analyse and Optimise 🧠
-    </Button>
   );
 
   return (
@@ -114,7 +113,7 @@ export default function PortfolioDataTable({
         noValuesString="Add at least 2 assets to your portfolio for analysis! 😊"
       >
         <DataTableToolbar table={table} childrenFarLeft={advInstrumentSearch}>
-          {analyseAndOptimise}
+          {toolBarChildren}
           {portfolio.length > 0 && (
             <Button
               variant="outline"

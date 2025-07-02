@@ -3,17 +3,13 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { API_URL } from "./custom-hooks";
 import { useDebounce } from "@uidotdev/usehooks";
-import { InstrumentType } from "./interfaces";
+import { InstrumentRow, InstrumentType } from "./interfaces";
 
 export function SymbolSearchBox({
   addToPortfolio,
 }: {
   addToPortfolio: (
-    items: {
-      symbol: string;
-      currency: string;
-      instrument_type: InstrumentType;
-    }[],
+    items: InstrumentRow[],
   ) => void;
 }) {
   const [isFocused, setIsFocused] = useState(false);
@@ -49,7 +45,8 @@ export function SymbolSearchBox({
         symbol: item.symbol,
         currency: item.currency,
         instrument_type: item.instrument_type,
-      },
+        exchange: item.exchange,
+      } as InstrumentRow,
     ]);
     setSymbolSearchValue("");
   };

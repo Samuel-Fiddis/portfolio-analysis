@@ -90,7 +90,7 @@ export default function EfficiencyFrontierChart({
         <Scatter
           name="Selected Portfolio"
           data={[selectedPortfolio]}
-          fill="#0074D9"
+          fill="#22c55e"
           shape="circle"
           isAnimationActive={false}
         />

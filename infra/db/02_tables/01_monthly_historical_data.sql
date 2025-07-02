@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS eod_tick (
+CREATE TABLE IF NOT EXISTS monthly_historical_tick_data (
     symbol VARCHAR(12),
     trade_date TIMESTAMPTZ,
     open_price DOUBLE PRECISION,

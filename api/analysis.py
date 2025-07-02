@@ -26,7 +26,7 @@ def get_standard_deviation(df, input_period=None, output_period=None):
     return adjust_std_dev_for_period(std, input_period, output_period)
 
 
-def adjust_std_dev_for_period(std, input_period="monthly", output_period="yearly"):
+def adjust_std_dev_for_period(std, input_period, output_period):
     """
     Adjust the standard deviation based on the input and output periods.
     :param std: Standard deviation Series.
@@ -52,7 +52,7 @@ def adjust_std_dev_for_period(std, input_period="monthly", output_period="yearly
         raise ValueError("Unsupported input/output period combination")
 
 
-def adjust_averages_for_period(avg, input_period="monthly", output_period="yearly"):
+def adjust_averages_for_period(avg, input_period, output_period):
     """
     Adjust the average returns based on the input and output periods.
     :param avg: Average returns Series.
