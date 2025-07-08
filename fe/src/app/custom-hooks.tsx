@@ -13,7 +13,7 @@ export function useCurrentPrice(symbols: string[]) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(symbols),
-        },
+        }
       );
       if (!response.ok) throw new Error("Network response was not ok");
       return response.json();
@@ -38,15 +38,28 @@ export function useCurrencyConversion(currencies: string[]) {
   });
 }
 
-export function usePortfolioOptimisation(portfolio: PortfolioItem[], timePeriod: string, startTime: string, endTime: string) {
-  const symbols = portfolio.map((item) => ({ symbol: item.symbol, exchange: item.exchange }));
+export function usePortfolioOptimisation(
+  portfolio: PortfolioItem[],
+  timePeriod: string,
+  startTime: string,
+  endTime: string
+) {
+  const symbols = portfolio.map((item) => ({
+    symbol: item.symbol,
+    exchange: item.exchange,
+  }));
   return useQuery<OptimisedValues>({
     queryKey: ["portfolioOptimise", symbols],
     queryFn: async () => {
       const response = await fetch(`${API_URL}/portfolio/optimise`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ portfolio, time_period: timePeriod, start_time: startTime, end_time: endTime }),
+        body: JSON.stringify({
+          portfolio,
+          time_period: timePeriod,
+          start_time: startTime,
+          end_time: endTime,
+        }),
       });
       if (!response.ok) throw new Error("Network response was not ok");
       return response.json();
@@ -55,14 +68,24 @@ export function usePortfolioOptimisation(portfolio: PortfolioItem[], timePeriod:
   });
 }
 
-export function useAnalyseInstruments(symbols: string[], timePeriod: string, startTime: string, endTime: string) {
+export function useAnalyseInstruments(
+  symbols: string[],
+  timePeriod: string,
+  startTime: string,
+  endTime: string
+) {
   return useQuery({
     queryKey: ["instrumentsAnalyse", symbols, timePeriod, startTime, endTime],
     queryFn: async () => {
       const response = await fetch(`${API_URL}/instruments/analyse`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbols, time_period: timePeriod, start_time: startTime, end_time: endTime }),
+        body: JSON.stringify({
+          symbols,
+          time_period: timePeriod,
+          start_time: startTime,
+          end_time: endTime,
+        }),
       });
       if (!response.ok) throw new Error("Network response was not ok");
       return response.json();

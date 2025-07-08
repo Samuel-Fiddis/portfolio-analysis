@@ -16,28 +16,37 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { OptimisationSettings } from "./interfaces";
+import { Spinner } from "@/components/custom/spinner";
 
 interface OptimisationProps {
-    optimisationSettings: OptimisationSettings;
-    setOptimisationSettings: React.Dispatch<React.SetStateAction<OptimisationSettings>>;
-    refetchOptimisation: () => void;
+  optimisationSettings: OptimisationSettings;
+  setOptimisationSettings: React.Dispatch<
+    React.SetStateAction<OptimisationSettings>
+  >;
+  refetchOptimisation: () => void;
+  isOptimising: boolean;
 }
 
 export function Optimisation({
-    optimisationSettings,
-    setOptimisationSettings,
-    refetchOptimisation
+  optimisationSettings,
+  setOptimisationSettings,
+  refetchOptimisation,
+  isOptimising,
 }: OptimisationProps) {
-    return (
-        <>
-            <Button size="sm" onClick={() => refetchOptimisation()}>
-                Analyse and Optimise 🧠
-            </Button>
+  return (
+    <div className="flex flex-row items-start gap-2">
+      <Button
+        size="sm"
+        onClick={() => refetchOptimisation()}
+        disabled={isOptimising}
+      >
+        {isOptimising ? "Processing..." : "🧠 Analyse and Optimise"}
+      </Button>
       <Sheet>
         <Tooltip>
           <SheetTrigger asChild>
             <TooltipTrigger asChild>
-              <Button variant="outline">
+              <Button size="sm">
                 <Settings />
               </Button>
             </TooltipTrigger>
@@ -46,7 +55,7 @@ export function Optimisation({
             <p>Optimisation Settings</p>
           </TooltipContent>
         </Tooltip>
-        <SheetContent>
+        <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Optimisation Settings</SheetTitle>
             <SheetDescription>
@@ -59,6 +68,6 @@ export function Optimisation({
           />
         </SheetContent>
       </Sheet>
-    </>
+    </div>
   );
 }

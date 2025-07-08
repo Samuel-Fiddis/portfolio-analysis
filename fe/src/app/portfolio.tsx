@@ -4,9 +4,7 @@ import { DataTable } from "@/components/custom/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
 import {
-  DEFAULT_OPTIMISATION_SETTINGS,
   InstrumentRow,
-  OptimisationSettings,
   PortfolioItem,
 } from "./interfaces";
 import { useDebounceCallback } from "usehooks-ts";
@@ -14,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { getPortfolioColumns } from "./table-columns";
 import { DialogWrapper } from "./dialog-wrapper";
 import { InstrumentSearch } from "./instrument-search";
-import { InstrumentType } from "./interfaces";
 import { SymbolSearchBox } from "./symbol-search-box";
 
 
