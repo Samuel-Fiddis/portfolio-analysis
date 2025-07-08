@@ -1,5 +1,7 @@
 import os
 from time import sleep
+import asyncio
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -51,8 +53,22 @@ while engine is None:
         engine = None
         sleep(5)  # Wait before retrying
 
-EQUITIES = fd.Equities()
-ETFS = fd.ETFs()
+EQUITIES = None
+ETFS = None
+
+while EQUITIES is None or ETFS is None:
+    log.info("Initializing financial data...")
+    try:
+        if EQUITIES is None:
+            EQUITIES = fd.Equities()
+        if ETFS is None:
+            ETFS = fd.ETFs()
+        log.info("Initialised financial data")
+    except Exception as e:
+        log.error(f"Failed to initialize financial data: {e}")
+        EQUITIES = None
+        ETFS = None
+        sleep(1)  # Wait before retrying
 
 API_KEY = os.getenv("FMP_API_KEY")
 
@@ -129,29 +145,23 @@ def convert_ndarrays(obj):
         return obj
 
 
-def get_current_price_and_time(symbol: str):
-    ticker = yf.Ticker(symbol)
-    # Option 1: Use fast_info (preferred if available)
-    if hasattr(ticker, "fast_info") and "last_price" in ticker.fast_info:
-        # yfinance does not provide a timestamp with fast_info
-        price = ticker.fast_info["last_price"]
-        # You may want to use the current time as a fallback
-        from datetime import datetime
+async def get_current_price_and_time(symbol: str):
+    loop = asyncio.get_event_loop()
+    ticker = await loop.run_in_executor(None, yf.Ticker, symbol)
 
+    if hasattr(ticker, "fast_info") and "last_price" in ticker.fast_info:
+        price = ticker.fast_info["last_price"]
         timestamp = datetime.utcnow().isoformat()
         return price, timestamp
-    # Option 2: Use history (fallback)
-    data = ticker.history(period="1d")
+
+    data = await loop.run_in_executor(None, ticker.history, "1d")
     if not data.empty:
         price = data["Close"].iloc[-1]
         timestamp = data.index[-1].isoformat()
         return price, timestamp
-    # Option 3: Use info (slower)
-    info = ticker.info
-    price = info.get("regularMarketPrice")
-    # yfinance does not provide a timestamp here, so fallback to current time
-    from datetime import datetime
 
+    info = await loop.run_in_executor(None, lambda: ticker.info)
+    price = info.get("regularMarketPrice")
     timestamp = datetime.utcnow().isoformat()
     return price, timestamp
 
@@ -207,7 +217,6 @@ async def search_equities(search_values: EquitiesSearchOptions):
 
 @app.post("/search/etfs", response_model=Dict[str, Any])
 async def search_etfs(search_values: ETFsSearchOptions):
-    print("ETF Search values:", search_values)
     req_json = search_values.model_dump(exclude_none=True)
     page = req_json.pop("page", None)
     page_size = req_json.pop("page_size", None)
@@ -269,7 +278,7 @@ async def get_equity_instrument_current_price(symbols: List[str]):
     """
     current_prices = {}
     for symbol in symbols:
-        price, timestamp = get_current_price_and_time(symbol)
+        price, timestamp = await get_current_price_and_time(symbol)
         if price is not None:
             current_prices[symbol] = {"price": price, "timestamp": timestamp}
         else:
@@ -324,7 +333,6 @@ async def optimise_portfolio_route(settings: OptimisationSettings):
             settings.end_time,
         )
         if len(missing_dates) > 0:
-            print(f"Missing dates for {portfolio_item['symbol']}: {missing_dates}")
             if portfolio_item["symbol"] not in missing_portfolio:
                 missing_portfolio.append(portfolio_item)
 
