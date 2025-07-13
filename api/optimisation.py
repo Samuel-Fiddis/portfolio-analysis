@@ -8,6 +8,7 @@ from analysis import (
     adjust_std_dev_for_period,
     get_averages,
     get_covariance_matrix,
+    get_geometric_mean,
 )
 
 
@@ -34,13 +35,16 @@ def optimise_portfolio(data, time_period):
     for i in range(SAMPLES):
         gamma.value = gamma_vals[i]
         prob.solve()
-        ret_annualised = adjust_averages_for_period(ret.value[0], time_period, "yearly")
+        weights = pd.Series(w.value, index=avg.index)
+        geometric_mean = get_geometric_mean(data, weights, time_period, "yearly")
+        arithmentic_mean = adjust_averages_for_period(ret.value[0], time_period, "yearly") #arithmetic mean
         std_annualised = adjust_std_dev_for_period(np.sqrt(risk.value), time_period, "yearly")
         optimal_portfolios.append(
             {
                 "gamma": gamma_vals[i],
                 "std_dev": std_annualised,
-                "return": ret_annualised,
+                "arithmetic_mean": arithmentic_mean,
+                "geometric_mean": geometric_mean,
                 "weights": json.loads(
                     pd.DataFrame(
                         {"symbol": avg.index, "value_proportion": w.value}
@@ -49,14 +53,14 @@ def optimise_portfolio(data, time_period):
             }
         )
 
-        # Remove portfolios with duplicate std_dev and return
+    # Remove portfolios with duplicate std_dev and return
     seen = set()
     filtered_portfolios = []
     for p in optimal_portfolios:
         key = (
-            round(p["std_dev"], 8),
-            round(p["return"], 8),
-        )  # rounding to avoid floating point issues
+            round(p["std_dev"], 3),
+            round(p["arithmetic_mean"], 3),
+        )  # rounding to eliminate small numerical differences
         if key not in seen:
             seen.add(key)
             filtered_portfolios.append(p)

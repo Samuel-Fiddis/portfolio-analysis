@@ -19,7 +19,7 @@ export interface PortfolioWeight {
   value_proportion: number;
 }
 export interface OptimisedValues {
-  historical_data: any;
+  historical_data: Record<string, HistoricalDataPoint[]>;
   stock_stats: {
     std_dev: Record<string, number>;
     avg_return: Record<string, number>;
@@ -27,10 +27,18 @@ export interface OptimisedValues {
   };
   optimisation_results: OptimisationResult[];
 }
+
+interface HistoricalDataPoint {
+  trade_date: string;
+  close_price: number;
+  change_percent: number;
+}
+
 export interface OptimisationResult {
   gamma?: number;
   std_dev: number;
-  return: number;
+  arithmetic_mean: number;
+  geometric_mean: number;
   sharpe_ratio_annualised?: number;
   weights: PortfolioWeight[];
 }

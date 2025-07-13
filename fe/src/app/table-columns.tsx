@@ -723,7 +723,7 @@ export function getPortfolioColumns({
       id: "avgReturn",
       accessorKey: "avgReturn",
       header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
-        <DataTableColumnHeader column={column} title="Average Return" />
+        <DataTableColumnHeader column={column} title="Arithmetic Mean" />
       ),
       cell: ({ cell }) => {
         const value = cell.getValue<PortfolioItem["avgReturn"]>();
@@ -731,7 +731,7 @@ export function getPortfolioColumns({
       },
       // Use ColorValue component to display the value with color coding
       meta: {
-        label: "Average Return",
+        label: "Arithmetic Mean",
       },
     },
     {

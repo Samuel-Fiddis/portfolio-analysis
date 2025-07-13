@@ -22,7 +22,7 @@ export default function EfficiencyFrontierChart({
   yourPortfolio?: OptimisationResult | null;
 }) {
   const stdDevs = optimisedPortfolios.map((p) => p.std_dev);
-  const returns = optimisedPortfolios.map((p) => p.return);
+  const returns = optimisedPortfolios.map((p) => p.geometric_mean);
 
   // Calculate min/max and range for each axis
   const minStdDev = Math.min(...stdDevs);
@@ -61,7 +61,7 @@ export default function EfficiencyFrontierChart({
           }}
         />
         <YAxis
-          dataKey="return"
+          dataKey="geometric_mean"
           type="number"
           domain={[() => minReturn - yBuffer, () => maxReturn + yBuffer]}
           tickFormatter={(value) => value.toFixed(2)}
@@ -69,7 +69,7 @@ export default function EfficiencyFrontierChart({
             value: "Annualised Return (%)",
             angle: -90,
             offset: 3,
-            dy: -80,
+            dy: -110,
             position: "left",
             fontWeight: "bold",
             fontSize,
@@ -77,7 +77,7 @@ export default function EfficiencyFrontierChart({
         />
         <Line
           type="monotone"
-          dataKey="return"
+          dataKey="geometric_mean"
           name="Efficiency Frontier"
           stroke="#8884d8"
           isAnimationActive={false}

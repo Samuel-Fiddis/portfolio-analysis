@@ -26,6 +26,25 @@ def get_standard_deviation(df, input_period=None, output_period=None):
     return adjust_std_dev_for_period(std, input_period, output_period)
 
 
+def get_geometric_mean(df, weights, input_period=None, output_period=None):
+    """
+    Calculate the geometric average returns for each symbol.
+    :param df: DataFrame containing historical data with columns 'trade_date', 'symbol', and 'change_percent'.
+    :param weights: Series with weights for each symbol.
+    :return: Series with geometric average returns for each symbol in percentage values e.g. (5.7%).
+    """
+    data = df.pivot(
+        index="trade_date", columns="symbol", values="change_percent"
+    ).apply(
+        lambda x: 1 + (x / 100)
+    )  # Convert to decimal
+    time_periods = len(data.index)
+    geo_mean = (
+        (data * weights).sum(axis=1).prod() ** (1 / time_periods) - 1
+    ) * 100
+    return adjust_averages_for_period(geo_mean, input_period, output_period)
+
+
 def adjust_std_dev_for_period(std, input_period, output_period):
     """
     Adjust the standard deviation based on the input and output periods.

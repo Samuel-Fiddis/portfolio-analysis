@@ -9,6 +9,7 @@ import {
   DEFAULT_OPTIMISATION_SETTINGS,
   OptimisationResult,
   OptimisationSettings,
+  OptimisedValues,
   PortfolioItem,
 } from "./interfaces";
 import {
@@ -18,7 +19,8 @@ import {
 } from "./custom-hooks";
 import EfficiencyFrontierChart from "./efficiency-frontier-chart";
 import {
-  getPortfolioReturn,
+  getArithmeticPortfolioReturn,
+  getPortfolioGeometricReturn,
   getPortfolioStandardDeviation,
 } from "./analysis-functions";
 import { Optimisation } from "./optimisation";
@@ -109,10 +111,16 @@ function MainApp() {
     if (!optimisationData?.stock_stats) return null;
     console.log(optimisationData?.stock_stats);
     return {
-      return: optimisationData?.stock_stats.avg_return
-        ? getPortfolioReturn(
+      arithmetic_mean: optimisationData?.stock_stats.avg_return
+        ? getArithmeticPortfolioReturn(
             portfolioWithQuotes,
             optimisationData.stock_stats.avg_return
+          )
+        : 0,
+      geometric_mean: optimisationData?.historical_data
+        ? getPortfolioGeometricReturn(
+            portfolioWithQuotes,
+            optimisationData.historical_data
           )
         : 0,
       std_dev: optimisationData?.stock_stats.std_dev
