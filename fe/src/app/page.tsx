@@ -27,6 +27,234 @@ import { Optimisation } from "./optimisation";
 import { CorrelationHeatmap } from "./correlation-heatmap";
 import AllocationsBarChart from "./allocations-bar-chart";
 
+// Constants
+const PERCENTAGE_MULTIPLIER = 100;
+const MIN_ALLOCATION_VALUE = 0.0000000001;
+const ISO_DATE_LENGTH = 10;
+
+// Utility functions with error handling
+const calculateTotalPortfolioValue = (
+  portfolio: PortfolioItem[],
+  quotes: Record<string, any> | undefined,
+  currencyRates: Record<string, number> | undefined
+): number => {
+  if (!portfolio?.length || !quotes || !currencyRates) return 0;
+  
+  return portfolio.reduce((sum, item) => {
+    try {
+      const quote = quotes[item.symbol];
+      const currencyRate = currencyRates[item.currency];
+      
+      if (!quote || typeof quote.price !== 'number' || !currencyRate) return sum;
+      if (item.currentShares < 0) return sum;
+      
+      return sum + (quote.price * item.currentShares * currencyRate);
+    } catch (error) {
+      console.warn(`Error calculating value for ${item.symbol}:`, error);
+      return sum;
+    }
+  }, 0);
+};
+
+const calculateItemValue = (item: PortfolioItem, quote: any): number => {
+  if (!item || !quote || typeof quote.price !== 'number') return 0;
+  if (item.currentShares < 0) return 0;
+  
+  return quote.price * item.currentShares;
+};
+
+const calculateAllocationPercentage = (
+  itemValue: number,
+  currencyRate: number | undefined,
+  totalValue: number
+): number => {
+  if (!currencyRate || totalValue <= 0 || itemValue < 0) return 0;
+  if (!isFinite(itemValue) || !isFinite(totalValue) || !isFinite(currencyRate)) return 0;
+  
+  return (itemValue * currencyRate / totalValue) * PERCENTAGE_MULTIPLIER;
+};
+
+const attachQuotesToPortfolio = (
+  portfolio: PortfolioItem[],
+  quotes: Record<string, any> | undefined,
+  currencyRates: Record<string, number> | undefined
+) => {
+  if (!portfolio?.length) return [];
+  
+  const totalValue = calculateTotalPortfolioValue(portfolio, quotes, currencyRates);
+  
+  return portfolio.map((item) => {
+    try {
+      const quote = quotes?.[item.symbol];
+      if (!quote) return item;
+      
+      const itemValue = calculateItemValue(item, quote);
+      const allocationPercentage = calculateAllocationPercentage(
+        itemValue,
+        currencyRates?.[item.currency],
+        totalValue
+      );
+      
+      return {
+        ...item,
+        sharePrice: quote.price,
+        value: itemValue,
+        yourAllocation: allocationPercentage,
+        sharePriceDate: quote.timestamp,
+      };
+    } catch (error) {
+      console.warn(`Error attaching quotes for ${item.symbol}:`, error);
+      return item;
+    }
+  });
+};
+
+const createYourPortfolioResult = (
+  optimisationData: any,
+  portfolioWithQuotes: any[]
+): OptimisationResult | null => {
+  if (!optimisationData?.stock_stats || !portfolioWithQuotes?.length) return null;
+  
+  try {
+    const { stock_stats, historical_data } = optimisationData;
+    
+    return {
+      arithmetic_mean: stock_stats.avg_return
+        ? getArithmeticPortfolioReturn(portfolioWithQuotes, stock_stats.avg_return)
+        : 0,
+      geometric_mean: historical_data
+        ? getPortfolioGeometricReturn(portfolioWithQuotes, historical_data)
+        : 0,
+      std_dev: stock_stats.std_dev
+        ? getPortfolioStandardDeviation(
+            portfolioWithQuotes,
+            stock_stats.std_dev,
+            stock_stats.corr_matrix
+          )
+        : 0,
+      weights: portfolioWithQuotes.map((item) => ({
+        symbol: item.symbol || '',
+        value_proportion: item.yourAllocation || 0,
+      })),
+    };
+  } catch (error) {
+    console.warn('Error creating portfolio result:', error);
+    return null;
+  }
+};
+
+const attachOptimisationToPortfolio = (
+  portfolioWithQuotes: any[],
+  optimisationResults: any[],
+  gamma: number
+) => {
+  if (!portfolioWithQuotes?.length || !optimisationResults?.length) return portfolioWithQuotes || [];
+  
+  try {
+    const safeGamma = Math.max(0, Math.min(gamma, optimisationResults.length - 1));
+    const selectedResult = optimisationResults[safeGamma] ?? optimisationResults[0];
+    
+    if (!selectedResult?.weights) return portfolioWithQuotes;
+    
+    const weightsMap = Object.fromEntries(
+      selectedResult.weights.map((w: any) => [w.symbol, w.value_proportion])
+    );
+    
+    return portfolioWithQuotes.map((item) => ({
+      ...item,
+      optimisedAllocation: Math.max(
+        weightsMap[item.symbol] || 0,
+        MIN_ALLOCATION_VALUE
+      ) * PERCENTAGE_MULTIPLIER,
+    }));
+  } catch (error) {
+    console.warn('Error attaching optimisation to portfolio:', error);
+    return portfolioWithQuotes;
+  }
+};
+
+const attachAnalysisToPortfolio = (
+  portfolioWithOptimisation: any[],
+  optimisationData: any
+) => {
+  if (!portfolioWithOptimisation?.length) return [];
+  
+  try {
+    const stdDev = optimisationData?.stock_stats?.std_dev ?? {};
+    const avgReturn = optimisationData?.stock_stats?.avg_return ?? {};
+    
+    return portfolioWithOptimisation.map((item) => ({
+      ...item,
+      stdDev: stdDev[item.symbol] ?? item.stdDev,
+      avgReturn: avgReturn[item.symbol] ?? item.avgReturn,
+    }));
+  } catch (error) {
+    console.warn('Error attaching analysis to portfolio:', error);
+    return portfolioWithOptimisation;
+  }
+};
+
+const extractUniqueSymbols = (portfolio: PortfolioItem[]): string[] => {
+  if (!portfolio?.length) return [];
+  return portfolio
+    .map((item) => item?.symbol)
+    .filter((symbol): symbol is string => Boolean(symbol));
+};
+
+const extractUniqueCurrencies = (portfolio: PortfolioItem[]): string[] => {
+  if (!portfolio?.length) return [];
+  const uniqueCurrencies = new Set(
+    portfolio
+      .map((item) => item?.currency)
+      .filter((currency): currency is string => Boolean(currency))
+  );
+  return Array.from(uniqueCurrencies);
+};
+
+// Analysis Results Component
+const AnalysisResults = ({
+  gamma,
+  setGamma,
+  optimisationResults,
+  yourPortfolio,
+  optimisationData,
+}: {
+  gamma: number;
+  setGamma: (gamma: number) => void;
+  optimisationResults: any[];
+  yourPortfolio: OptimisationResult | null;
+  optimisationData: any;
+}) => (
+  <>
+    <OptimisationSlider
+      gamma={gamma}
+      setGamma={setGamma}
+      optimisationResults={optimisationResults}
+    />
+    <h2 className="text-2xl font-bold mb-6 text-center">
+      Analysis and Optimisation Results
+    </h2>
+    <div className="flex flex-col w-full gap-8 items-center justify-center">
+      <EfficiencyFrontierChart
+        optimisedPortfolios={optimisationResults}
+        selectedPortfolio={optimisationResults[gamma]}
+        yourPortfolio={yourPortfolio}
+      />
+      {optimisationData && (
+        <AllocationsBarChart
+          optimisedAllocation={optimisationResults[gamma].weights}
+          yourAllocation={yourPortfolio?.weights}
+        />
+      )}
+      {optimisationData && (
+        <CorrelationHeatmap
+          corrMatrix={optimisationData?.stock_stats.corr_matrix}
+        />
+      )}
+    </div>
+  </>
+);
+
 const queryClient = new QueryClient();
 
 export default function Home() {
@@ -45,43 +273,19 @@ function MainApp() {
     useState<OptimisationSettings>(DEFAULT_OPTIMISATION_SETTINGS);
   const [gamma, setGamma] = useState<number>(0);
 
-  // Fetch current prices for portfolio symbols
-  const symbols = useMemo(
-    () => portfolio.map((item) => item.symbol),
-    [portfolio]
-  );
-  const currencies = useMemo(() => {
-    const uniqueCurrencies = new Set(portfolio.map((item) => item.currency));
-    return Array.from(uniqueCurrencies);
-  }, [portfolio]);
+  // Extract symbols and currencies from portfolio
+  const symbols = useMemo(() => extractUniqueSymbols(portfolio), [portfolio]);
+  const currencies = useMemo(() => extractUniqueCurrencies(portfolio), [portfolio]);
+  
+  // Fetch current prices and currency rates
   const { data: quotes } = useCurrentPrice(symbols);
   const { data: currencyRates } = useCurrencyConversion(currencies);
 
   // Attach current price and value to each portfolio item
-  const portfolioWithQuotes = useMemo(() => {
-    const totalValue = portfolio.reduce(
-      (sum, item) =>
-        sum +
-        (quotes?.[item.symbol].price *
-          item.currentShares *
-          currencyRates?.[item.currency] || 0),
-      0
-    );
-    return portfolio.map((item) => {
-      const quote = quotes?.[item.symbol];
-      const value = quote?.price * item.currentShares;
-      return quote
-        ? {
-            ...item,
-            sharePrice: quote.price,
-            value: value,
-            yourAllocation:
-              ((value * currencyRates?.[item.currency]) / totalValue) * 100,
-            sharePriceDate: quote.timestamp,
-          }
-        : item;
-    });
-  }, [portfolio, quotes, currencyRates]);
+  const portfolioWithQuotes = useMemo(
+    () => attachQuotesToPortfolio(portfolio, quotes, currencyRates),
+    [portfolio, quotes, currencyRates]
+  );
 
   // Remove optimisation results when portfolio length changes
   useEffect(() => {
@@ -96,10 +300,11 @@ function MainApp() {
   } = usePortfolioOptimisation(
     portfolio,
     optimisationSettings.timePeriod,
-    optimisationSettings.startTime.toISOString().slice(0, 10),
-    optimisationSettings.endTime.toISOString().slice(0, 10)
+    optimisationSettings.startTime.toISOString().slice(0, ISO_DATE_LENGTH),
+    optimisationSettings.endTime.toISOString().slice(0, ISO_DATE_LENGTH)
   );
 
+  // Create optimisation component
   const optimisationComponent = Optimisation({
     optimisationSettings,
     setOptimisationSettings,
@@ -107,62 +312,28 @@ function MainApp() {
     isOptimising,
   });
 
-  const yourPortfolio = useMemo(() => {
-    if (!optimisationData?.stock_stats) return null;
-    console.log(optimisationData?.stock_stats);
-    return {
-      arithmetic_mean: optimisationData?.stock_stats.avg_return
-        ? getArithmeticPortfolioReturn(
-            portfolioWithQuotes,
-            optimisationData.stock_stats.avg_return
-          )
-        : 0,
-      geometric_mean: optimisationData?.historical_data
-        ? getPortfolioGeometricReturn(
-            portfolioWithQuotes,
-            optimisationData.historical_data
-          )
-        : 0,
-      std_dev: optimisationData?.stock_stats.std_dev
-        ? getPortfolioStandardDeviation(
-            portfolioWithQuotes,
-            optimisationData?.stock_stats.std_dev,
-            optimisationData?.stock_stats.corr_matrix
-          )
-        : 0,
-      weights: portfolioWithQuotes.map((item) => ({
-        symbol: item.symbol,
-        value_proportion: item.yourAllocation, // Convert percentage to proportion
-      })),
-    } as OptimisationResult;
-  }, [optimisationData, portfolioWithQuotes]);
+  // Calculate your portfolio metrics
+  const yourPortfolio = useMemo(
+    () => createYourPortfolioResult(optimisationData, portfolioWithQuotes),
+    [optimisationData, portfolioWithQuotes]
+  );
 
   const optimisationResults = optimisationData?.optimisation_results ?? [];
 
   // Attach optimised allocation to each item
-  const portfolioWithOptimisation = useMemo(() => {
-    if (!optimisationResults.length) return portfolioWithQuotes;
-    const result = optimisationResults[gamma] ?? optimisationResults[0];
-    const weights = Object.fromEntries(
-      result.weights.map((w) => [w.symbol, w.value_proportion])
-    );
-    return portfolioWithQuotes.map((item) => ({
-      ...item,
-      optimisedAllocation:
-        weights[item.symbol] < 0 ? 0.0000000001 : weights[item.symbol] * 100,
-    }));
-  }, [portfolioWithQuotes, optimisationResults, gamma]);
+  const portfolioWithOptimisation = useMemo(
+    () => attachOptimisationToPortfolio(portfolioWithQuotes, optimisationResults, gamma),
+    [portfolioWithQuotes, optimisationResults, gamma]
+  );
 
   // Attach analysis stats to each item
-  const portfolioWithAnalysis = useMemo(() => {
-    const stdDev = optimisationData?.stock_stats.std_dev ?? {};
-    const avgReturn = optimisationData?.stock_stats.avg_return ?? {};
-    return portfolioWithOptimisation.map((item) => ({
-      ...item,
-      stdDev: stdDev[item.symbol] ?? item.stdDev,
-      avgReturn: avgReturn[item.symbol] ?? item.avgReturn,
-    }));
-  }, [portfolioWithOptimisation, optimisationData]);
+  const portfolioWithAnalysis = useMemo(
+    () => attachAnalysisToPortfolio(portfolioWithOptimisation, optimisationData),
+    [portfolioWithOptimisation, optimisationData]
+  );
+
+  const shouldShowAnalysis = !isOptimising && optimisationResults.length > 0;
+  const shouldShowOptimisation = portfolio.length > 1;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -174,37 +345,15 @@ function MainApp() {
           portfolio={portfolioWithAnalysis}
           setPortfolio={setPortfolio}
         />
-        {portfolio.length > 1 && optimisationComponent}
-        {/* {quotes && <StockChart data={quotes} />} */}
-        {!isOptimising && optimisationResults.length > 0 && (
-          <>
-            <OptimisationSlider
-              gamma={gamma}
-              setGamma={setGamma}
-              optimisationResults={optimisationResults}
-            />
-            <h2 className="text-2xl font-bold mb-6 text-center">
-              Analysis and Optimisation Results
-            </h2>
-            <div className="flex flex-col w-full gap-8 items-center justify-center">
-              <EfficiencyFrontierChart
-                optimisedPortfolios={optimisationResults}
-                selectedPortfolio={optimisationResults[gamma]}
-                yourPortfolio={yourPortfolio}
-              />
-              {optimisationData && (
-                <AllocationsBarChart
-                  optimisedAllocation={optimisationResults[gamma].weights}
-                  yourAllocation={yourPortfolio?.weights}
-                />
-              )}
-              {optimisationData && (
-                <CorrelationHeatmap
-                  corrMatrix={optimisationData?.stock_stats.corr_matrix}
-                />
-              )}
-            </div>
-          </>
+        {shouldShowOptimisation && optimisationComponent}
+        {shouldShowAnalysis && (
+          <AnalysisResults
+            gamma={gamma}
+            setGamma={setGamma}
+            optimisationResults={optimisationResults}
+            yourPortfolio={yourPortfolio}
+            optimisationData={optimisationData}
+          />
         )}
       </div>
     </main>

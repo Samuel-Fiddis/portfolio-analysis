@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { OptimisationSettings } from "./interfaces";
-import { Spinner } from "@/components/custom/spinner";
 
 interface OptimisationProps {
   optimisationSettings: OptimisationSettings;
