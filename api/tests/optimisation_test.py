@@ -1,4 +1,3 @@
-from analysis import get_geometric_mean
 import pytest
 import pandas as pd
 
@@ -7,7 +6,7 @@ from optimisation import optimise_portfolio
 @pytest.fixture
 def optimisation_data():
     """Fixture providing mock stock price data"""
-    return pd.read_csv('data/optimisation_test_data.csv')
+    return pd.read_csv('tests/data/optimisation_test_data.csv')
 
 class TestOptimisation:
     def test_optimisation(self, optimisation_data):        

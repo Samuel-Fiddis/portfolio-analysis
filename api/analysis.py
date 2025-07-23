@@ -39,9 +39,7 @@ def get_geometric_mean(df, weights, input_period=None, output_period=None):
         lambda x: 1 + (x / 100)
     )  # Convert to decimal
     time_periods = len(data.index)
-    geo_mean = (
-        (data * weights).sum(axis=1).prod() ** (1 / time_periods) - 1
-    ) * 100
+    geo_mean = ((data * weights).sum(axis=1).prod() ** (1 / time_periods) - 1) * 100
     return adjust_averages_for_period(geo_mean, input_period, output_period)
 
 
@@ -156,3 +154,76 @@ def get_portfolio_standard_deviation(portfolio, std_dev, corr_matrix):
             )
 
     return np.sqrt(port_std_dev)
+
+
+def calculate_drawdown_statistics(cumulative_returns):
+    """
+    Helper function to calculate drawdown details from cumulative returns.
+    :param cumulative_returns: Series of cumulative returns.
+    :return: Dictionary containing drawdown details.
+    """
+    # Calculate running maximum
+    running_max = cumulative_returns.expanding().max()
+    # Calculate drawdown
+    drawdown = (cumulative_returns - running_max) / running_max
+
+    # Find maximum drawdown
+    max_drawdown = drawdown.min() * 100
+    max_drawdown_date = drawdown.idxmin()
+
+    # Find the start of the drawdown period (peak before the drawdown)
+    peak_before_drawdown = running_max.loc[:max_drawdown_date].idxmax()
+
+    # Find the end of the drawdown period (recovery to new high)
+    recovery_date = None
+    peak_value = running_max.loc[peak_before_drawdown]
+
+    # Look for recovery after the drawdown bottom
+    for date in cumulative_returns.loc[max_drawdown_date:].index:
+        if cumulative_returns.loc[date] >= peak_value:
+            recovery_date = date
+            break
+
+    return {
+        "drawdown": drawdown,
+        "max_drawdown": {
+            "percent": max_drawdown,
+            "start_date": peak_before_drawdown,
+            "end_date": recovery_date,
+            "bottom_date": max_drawdown_date,
+        },
+    }
+
+
+def get_portfolio_drawdown_percentage(df, weights):
+    """
+    Calculate the maximum drawdown percentage for a portfolio with given weights.
+    :param df: DataFrame containing historical data with columns 'trade_date', 'symbol', and 'change_percent'.
+    :param weights: Series with weights for each symbol.
+    :return: Dictionary containing maximum drawdown percentage, start date, and end date.
+    """
+    pivot_data = df.pivot(index="trade_date", columns="symbol", values="change_percent")
+
+    # Calculate portfolio returns
+    portfolio_returns = (pivot_data * weights).sum(axis=1)
+    # Calculate cumulative returns
+    cumulative_returns = (1 + portfolio_returns / 100).cumprod()
+
+    return calculate_drawdown_statistics(cumulative_returns)
+
+
+def get_symbols_drawdown_percentage(df):
+    """
+    Calculate the maximum drawdown percentage for each symbol in the dataframe.
+    :param df: DataFrame containing historical data with columns 'trade_date', 'symbol', and 'change_percent'.
+    :return: Dictionary with symbol names as keys and dictionaries containing drawdown info as values.
+    """
+    pivot_data = df.pivot(index="trade_date", columns="symbol", values="change_percent")
+
+    symbol_drawdowns = {}
+    for symbol in pivot_data.columns:
+        returns = pivot_data[symbol].dropna()
+        cumulative_returns = (1 + returns / 100).cumprod()
+        symbol_drawdowns[symbol] = calculate_drawdown_statistics(cumulative_returns)
+
+    return symbol_drawdowns
