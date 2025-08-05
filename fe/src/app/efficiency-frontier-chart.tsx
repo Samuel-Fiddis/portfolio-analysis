@@ -39,11 +39,9 @@ export default function EfficiencyFrontierChart({
 
   const fontSize = 14;
 
-  console.log("Your Portfolio:", yourPortfolio);
-
   return (
     <div className="overflow-x-auto">
-      <p className="text-center font-semibold">Efficiency Forntier</p>
+      <p className="text-center font-semibold">Efficiency Frontier</p>
       <LineChart
         width={1000}
         height={400}
@@ -94,7 +92,7 @@ export default function EfficiencyFrontierChart({
             isAnimationActive={false}
           />
         )}
-        {yourPortfolio && (
+        {yourPortfolio && yourPortfolio.geometric_mean && yourPortfolio.std_dev && (
           <Scatter
             name="Your Portfolio"
             data={[yourPortfolio]}

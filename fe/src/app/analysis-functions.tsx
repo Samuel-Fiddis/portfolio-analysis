@@ -35,8 +35,8 @@ export function getPortfolioGeometricReturn(
   portfolio: PortfolioItem[],
   historicalData: Record<string, HistoricalDataPoint[]>,
   inputPeriod: PeriodType = "monthly"
-) { 
-  const weightedReturns = portfolio.map((item) => {
+) {
+  const weightedReturns = portfolio.filter((item) => item.yourAllocation !== 0).map((item) => {
     const symbol = item.symbol;
     const weight = item.yourAllocation / 100.0;
     const data = historicalData[symbol].map(
@@ -44,6 +44,8 @@ export function getPortfolioGeometricReturn(
     );
     return data;
   });
+
+  if (weightedReturns.length === 0) return 0;
 
   const maxLen = Math.max(...weightedReturns.map((arr) => arr.length));
   const pivoted: number[][] = [];

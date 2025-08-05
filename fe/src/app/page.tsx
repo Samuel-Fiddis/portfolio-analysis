@@ -11,6 +11,7 @@ import {
   OptimisationSettings,
   OptimisedValues,
   PortfolioItem,
+  PricePoint,
 } from "./interfaces";
 import {
   useCurrentPrice,
@@ -34,14 +35,14 @@ const ISO_DATE_LENGTH = 10;
 const calculateTotalPortfolioValue = (
   portfolio: PortfolioItem[],
   quotes: Record<string, any> | undefined,
-  currencyRates: Record<string, number> | undefined
+  currencyRates: Record<string, PricePoint> | undefined
 ): number => {
   if (!portfolio?.length || !quotes || !currencyRates) return 0;
 
   return portfolio.reduce((sum, item) => {
     try {
       const quote = quotes[item.symbol];
-      const currencyRate = currencyRates[item.currency];
+      const currencyRate = currencyRates[item.currency].price;
 
       if (!quote || typeof quote.price !== "number" || !currencyRate)
         return sum;
@@ -77,7 +78,7 @@ const calculateAllocationPercentage = (
 const attachQuotesToPortfolio = (
   portfolio: PortfolioItem[],
   quotes: Record<string, any> | undefined,
-  currencyRates: Record<string, number> | undefined
+  currencyRates: Record<string, PricePoint> | undefined
 ) => {
   if (!portfolio?.length) return [];
 
@@ -95,7 +96,7 @@ const attachQuotesToPortfolio = (
       const itemValue = calculateItemValue(item, quote);
       const allocationPercentage = calculateAllocationPercentage(
         itemValue,
-        currencyRates?.[item.currency],
+        currencyRates?.[item.currency].price,
         totalValue
       );
 

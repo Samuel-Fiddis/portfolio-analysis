@@ -27,17 +27,18 @@ from optimisation import optimise_portfolio
 
 from logging import basicConfig, INFO, getLogger
 
-# Configure logging
+
 basicConfig(level=INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 log = getLogger(__name__)
 
-# Database connection parameters
+
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", 5433))
 DB_NAME = os.getenv("DB_NAME", "postgres")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
-# Connect to the PostgreSQL database
+API_KEY = os.getenv("FMP_API_KEY")
+
 engine = None
 
 while engine is None:
@@ -51,7 +52,7 @@ while engine is None:
     except Exception as e:
         log.error(f"Failed to connect to the database: {e}")
         engine = None
-        sleep(5)  # Wait before retrying
+        sleep(5)
 
 EQUITIES = None
 ETFS = None
@@ -68,9 +69,9 @@ while EQUITIES is None or ETFS is None:
         log.error(f"Failed to initialize financial data: {e}")
         EQUITIES = None
         ETFS = None
-        sleep(1)  # Wait before retrying
+        sleep(1)
 
-API_KEY = os.getenv("FMP_API_KEY")
+StringList = Union[str, List[str]]
 
 
 class OptimisationSettings(BaseModel):
@@ -81,46 +82,34 @@ class OptimisationSettings(BaseModel):
 
 
 class SearchCategories(BaseModel):
+    # Values used by React Search DataTable
     page: Optional[int] = 1
     page_size: Optional[int] = 10
     filters: Optional[Dict[str, Any]] = None
-
-
-class SearchOptions(SearchCategories):
+    # Values common to all search options
     index: Optional[str] = None
+    currency: Optional[StringList] = None
     instrument_type: Optional[str] = None
-    currency: Optional[Union[str, List[str]]] = None
-    sector: Optional[Union[str, List[str]]] = None
-    industry_group: Optional[Union[str, List[str]]] = None
-    industry: Optional[Union[str, List[str]]] = None
-    exchange: Optional[Union[str, List[str]]] = None
-    market: Optional[Union[str, List[str]]] = None
-    country: Optional[Union[str, List[str]]] = None
-    category_group: Optional[Union[str, List[str]]] = None
-    category: Optional[Union[str, List[str]]] = None
-    family: Optional[Union[str, List[str]]] = None
-    market_cap: Optional[Union[str, List[str]]] = None
 
 
 class EquitiesSearchOptions(SearchCategories):
-    index: Optional[str] = None
-    currency: Optional[Union[str, List[str]]] = None
-    sector: Optional[Union[str, List[str]]] = None
-    industry_group: Optional[Union[str, List[str]]] = None
-    industry: Optional[Union[str, List[str]]] = None
-    exchange: Optional[Union[str, List[str]]] = None
-    market: Optional[Union[str, List[str]]] = None
-    country: Optional[Union[str, List[str]]] = None
-    market_cap: Optional[Union[str, List[str]]] = None
+    sector: Optional[StringList] = None
+    industry_group: Optional[StringList] = None
+    industry: Optional[StringList] = None
+    exchange: Optional[StringList] = None
+    market: Optional[StringList] = None
+    country: Optional[StringList] = None
+    market_cap: Optional[StringList] = None
 
 
 class ETFsSearchOptions(SearchCategories):
-    index: Optional[str] = None
-    currency: Optional[Union[str, List[str]]] = None
-    category_group: Optional[Union[str, List[str]]] = None
-    category: Optional[Union[str, List[str]]] = None
-    family: Optional[Union[str, List[str]]] = None
-    exchange: Optional[Union[str, List[str]]] = None
+    category_group: Optional[StringList] = None
+    category: Optional[StringList] = None
+    family: Optional[StringList] = None
+    exchange: Optional[StringList] = None
+
+
+SearchOptions = Union[EquitiesSearchOptions, ETFsSearchOptions]
 
 
 app = FastAPI()
@@ -175,72 +164,54 @@ async def health_check():
 async def search_instruments(search_values: SearchOptions):
     instrument_type = search_values.instrument_type
     search_values.instrument_type = None
-    if instrument_type == "Equities":
-        return await search_equities(search_values)
-    elif instrument_type == "ETFs":
-        return await search_etfs(search_values)
+    match instrument_type:
+        case "Equities":
+            return await search_equities(search_values)
+        case "ETFs":
+            return await search_etfs(search_values)
+        case _:
+            equities = await search_equities(search_values)
+            etfs = await search_etfs(search_values)
+            combined_data = {
+                "data": equities["data"] + etfs["data"],
+                "pageCount": equities["pageCount"] + etfs["pageCount"],
+                "options": {**equities["options"], **etfs["options"]},
+            }
+            return combined_data
+
+
+def search_instruments_helper(search_values, DB, instrument_type_label):
+    req_json = search_values.model_dump(exclude_none=True)
+    page = req_json.pop("page", None)
+    page_size = req_json.pop("page_size", None)
+    options = {k: v.astype(str).tolist() for k, v in DB.show_options().items()}
+    if getattr(search_values, "index", None) is not None:
+        results = json.loads(
+            DB.search(**req_json).reset_index().to_json(orient="records")
+        )
     else:
-        equities = await search_equities(search_values)
-        etfs = await search_etfs(search_values)
-        combined_data = {
-            "data": equities["data"] + etfs["data"],
-            "pageCount": equities["pageCount"] + etfs["pageCount"],
-            "options": {**equities["options"], **etfs["options"]},
-        }
-        return combined_data
+        results = json.loads(
+            DB.select(**req_json).reset_index().to_json(orient="records")
+        )
+    for item in results:
+        item["instrument_type"] = instrument_type_label
+    if page_size is None or page is None:
+        return {"data": results, "pageCount": 1, "options": options}
+    return {
+        "data": results[(page - 1) * page_size : page * page_size],
+        "pageCount": (1 + len(results) // page_size),
+        "options": options,
+    }
 
 
-@app.post("/search/equities", response_model=Dict[str, Any])
 async def search_equities(search_values: EquitiesSearchOptions):
-    req_json = search_values.model_dump(exclude_none=True)
-    page = req_json.pop("page", None)
-    page_size = req_json.pop("page_size", None)
-    options = {k: v.astype(str).tolist() for k, v in EQUITIES.show_options().items()}
-    if search_values.index is not None:
-        results = json.loads(
-            EQUITIES.search(**req_json).reset_index().to_json(orient="records")
-        )
-    else:
-        results = json.loads(
-            EQUITIES.select(**req_json).reset_index().to_json(orient="records")
-        )
-    for item in results:
-        item["instrument_type"] = "Equity"
-    if page_size is None or page is None:
-        return {"data": results, "pageCount": 1, "options": options}
-    return {
-        "data": results[(page - 1) * page_size : page * page_size],
-        "pageCount": (1 + len(results) // page_size),
-        "options": options,
-    }
+    return search_instruments_helper(search_values, EQUITIES, "Equity")
 
 
-@app.post("/search/etfs", response_model=Dict[str, Any])
 async def search_etfs(search_values: ETFsSearchOptions):
-    req_json = search_values.model_dump(exclude_none=True)
-    page = req_json.pop("page", None)
-    page_size = req_json.pop("page_size", None)
-    options = {k: v.astype(str).tolist() for k, v in ETFS.show_options().items()}
-    if search_values.index is not None:
-        results = json.loads(
-            ETFS.search(**req_json).reset_index().to_json(orient="records")
-        )
-    else:
-        results = json.loads(
-            ETFS.select(**req_json).reset_index().to_json(orient="records")
-        )
-    for item in results:
-        item["instrument_type"] = "ETF"
-    if page_size is None or page is None:
-        return {"data": results, "pageCount": 1, "options": options}
-    return {
-        "data": results[(page - 1) * page_size : page * page_size],
-        "pageCount": (1 + len(results) // page_size),
-        "options": options,
-    }
+    return search_instruments_helper(search_values, ETFS, "ETF")
 
 
-@app.post("/instruments/equities/quotes", response_model=Dict[str, Any])
 async def get_data_from_toolkit(settings: OptimisationSettings):
     symbols = [portfolio_item["symbol"] for portfolio_item in settings.portfolio]
     tk = Toolkit(
@@ -269,7 +240,7 @@ async def get_data_from_toolkit(settings: OptimisationSettings):
     return data
 
 
-@app.post("/instruments/equities/current_price", response_model=Dict[str, Any])
+@app.post("/instruments/current_price", response_model=Dict[str, Any])
 async def get_equity_instrument_current_price(symbols: List[str]):
     """
     Get the current price of equity instruments by their symbols.
@@ -308,46 +279,52 @@ async def analyse_instruments(settings: OptimisationSettings):
     }
 
 
-@app.post("/portfolio/optimise", response_model=Dict[str, Any])
-async def optimise_portfolio_route(settings: OptimisationSettings):
-    """Optimise a portfolio based on the provided portfolio data.
-    :param portfolio: Dictionary containing portfolio data with symbols as keys and their respective values.
-    :return: Dictionary containing optimisation results, historical data, standard deviation, and average return.
-    """
-    data = read_data_from_db(settings)
-
-    # Need to refetch data if symbols are missing
+def find_missing_portfolio_items(
+    data: pd.DataFrame, settings: OptimisationSettings
+) -> List[Dict[str, Any]]:
+    """Return portfolio items missing from the data (by symbol or missing dates)."""
     missing_portfolio = [
-        portfolio_item
-        for portfolio_item in settings.portfolio
-        if portfolio_item["symbol"] not in data["symbol"].unique()
+        item
+        for item in settings.portfolio
+        if item["symbol"] not in data["symbol"].unique()
     ]
-    # Need to refetch data if dates are missing for any of the symbols
-    for portfolio_item in settings.portfolio:
+    for item in settings.portfolio:
         missing_dates = get_missing_dates(
             data,
-            portfolio_item["symbol"],
-            portfolio_item["exchange"],
+            item["symbol"],
+            item["exchange"],
             settings.time_period,
             settings.start_time,
             settings.end_time,
         )
-        if len(missing_dates) > 0:
-            if portfolio_item["symbol"] not in missing_portfolio:
-                missing_portfolio.append(portfolio_item)
+        if missing_dates and item not in missing_portfolio:
+            missing_portfolio.append(item)
+    return missing_portfolio
 
-    # Drop old data for the symbols that are missing
-    missing_symbols = [item["symbol"] for item in missing_portfolio]
-    data = data[
-        data["symbol"].isin(
-            [
-                item["symbol"]
-                for item in settings.portfolio
-                if (item["symbol"] not in missing_symbols)
-            ]
-        )
+
+def filter_existing_data(
+    data: pd.DataFrame, settings: OptimisationSettings, missing_symbols: List[str]
+) -> pd.DataFrame:
+    """Return data for symbols not in missing_symbols."""
+    keep_symbols = [
+        item["symbol"]
+        for item in settings.portfolio
+        if item["symbol"] not in missing_symbols
     ]
+    return data[data["symbol"].isin(keep_symbols)]
 
+
+@app.post("/portfolio/optimise", response_model=Dict[str, Any])
+async def optimise_portfolio_route(settings: OptimisationSettings):
+    """Optimise a portfolio based on the provided portfolio data."""
+    data = read_data_from_db(settings)
+
+    # Find missing portfolio items (by symbol or missing dates)
+    missing_portfolio = find_missing_portfolio_items(data, settings)
+    missing_symbols = [item["symbol"] for item in missing_portfolio]
+    data = filter_existing_data(data, settings, missing_symbols)
+
+    # Fetch and append missing data if needed
     if missing_portfolio:
         settings.portfolio = missing_portfolio
         missing_data = await get_data_from_toolkit(settings)
@@ -359,10 +336,10 @@ async def optimise_portfolio_route(settings: OptimisationSettings):
     corr_matrix = get_correlation_matrix(data)
     ret = get_averages(data, input_period=settings.time_period, output_period="yearly")
 
-    op = optimise_portfolio(data, settings.time_period)
+    optimisation_results = optimise_portfolio(data, settings.time_period)
 
     return {
-        "optimisation_results": op,
+        "optimisation_results": optimisation_results,
         "time_period": settings.time_period,
         "historical_data": data.groupby("symbol")[
             ["trade_date", "close_price", "change_percent"]
@@ -378,30 +355,19 @@ async def optimise_portfolio_route(settings: OptimisationSettings):
 
 
 @app.post("/currencies", response_model=Dict[str, Any])
-def get_usd_conversion_rates(currencies: List[str]):
+async def get_usd_conversion_rates(currencies: List[str]):
     """
-    Returns a dict mapping currency codes to their USD conversion rate.
-    For example, {'EUR': 1.07, 'GBP': 1.25}
+    Returns a dict mapping currency codes to their USD conversion rate and timestamp.
+    For example, {'EUR': {'price': 1.07, 'timestamp': '...'}, ...}
     """
     rates = {}
     for currency in currencies:
         if currency.upper() == "USD":
-            rates["USD"] = 1.0
+            rates["USD"] = {"price": 1.0, "timestamp": datetime.utcnow().isoformat()}
             continue
         ticker = f"{currency.upper()}USD=X"
-        data = yf.Ticker(ticker)
-        price = None
-        # Try fast_info first
-        if hasattr(data, "fast_info") and "last_price" in data.fast_info:
-            price = data.fast_info["last_price"]
-        else:
-            hist = data.history(period="1d")
-            if not hist.empty:
-                price = hist["Close"].iloc[-1]
-        if price is not None:
-            rates[currency.upper()] = price
-        else:
-            rates[currency.upper()] = None  # or handle error/log
+        price, timestamp = await get_current_price_and_time(ticker)
+        rates[currency.upper()] = {"price": price, "timestamp": timestamp}
     return rates
 
 
@@ -470,22 +436,30 @@ def get_missing_dates(
     start_time: str,
     end_time: str,
 ) -> List[str]:
-    data_dates = pd.to_datetime(data[data["symbol"] == symbol]["trade_date"]).dt.date.to_list()
+    data_dates = pd.to_datetime(
+        data[data["symbol"] == symbol]["trade_date"]
+    ).dt.date.to_list()
     if time_period == "daily":
         holidays = get_exchange_holidays(exchange, start_time, end_time)
-        all_dates = pd.date_range(start=start_time, end=end_time, freq="B").to_pydatetime().tolist()
+        all_dates = (
+            pd.date_range(start=start_time, end=end_time, freq="B")
+            .to_pydatetime()
+            .tolist()
+        )
         all_dates = [d.date() for d in all_dates if d.date() not in holidays]
     elif time_period == "monthly":
         # Ignore holidays for monthly data
-        all_dates = pd.date_range(start=start_time, end=end_time, freq="ME").to_pydatetime().tolist()
-        all_dates = [d.date() for d in all_dates if d.date() not in data_dates]
+        all_dates = (
+            pd.date_range(start=start_time, end=end_time, freq="ME")
+            .to_pydatetime()
+            .tolist()
+        )
+        all_dates = [d.date() for d in all_dates if d.date()]
     missing_dates = [date for date in all_dates if date not in data_dates]
     return missing_dates
 
 
-def get_exchange_holidays(
-    exchange: str, start_time: str, end_time: str
-) -> List[str]:
+def get_exchange_holidays(exchange: str, start_time: str, end_time: str) -> List[str]:
     sql_query = text(
         """
         SELECT holiday_date FROM exchange_holidays
@@ -520,6 +494,9 @@ def set_exchange_holidays(exchange: str, holidays: List[str]):
 
 
 def insert_on_conflict_nothing_indices(indices):
+    """A helper function to handle insertions with conflict resolution using pandas.
+    :param indices: List of column names"""
+
     def insert_on_conflict_nothing(table, conn, keys, data_iter):
         data = [dict(zip(keys, row)) for row in data_iter]
         stmt = (

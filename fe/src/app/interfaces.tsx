@@ -6,13 +6,13 @@ export interface PortfolioItem {
   currentShares: number;
   currency: string;
   value: number;
+  yourAllocation: number;
   stdDev?: number;
   avgReturn?: number;
   sharePrice?: number;
   sharePriceDate?: string;
   investmentDate?: string;
   optimisedAllocation?: number;
-  yourAllocation?: number;
 }
 
 export interface PortfolioWeight {
@@ -86,6 +86,11 @@ export interface ETFsOptions {
   category?: string[];
   family?: string[];
   exchange?: string[];
+}
+
+export interface PricePoint {
+  price: number;
+  timestamp: string;
 }
 
 export type PeriodType = "yearly" | "monthly" | "daily";

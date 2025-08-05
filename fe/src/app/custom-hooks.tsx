@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { OptimisedValues, PortfolioItem } from "./interfaces";
+import { OptimisedValues, PortfolioItem, PricePoint } from "./interfaces";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useCurrentPrice(symbols: string[]) {
-  return useQuery({
+  return useQuery<{
+    [symbol: string]: PricePoint;
+  }>({
     queryKey: ["currentPrice", symbols],
     queryFn: async () => {
       const response = await fetch(
-        `${API_URL}/instruments/equities/current_price`,
+        `${API_URL}/instruments/current_price`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -23,7 +25,9 @@ export function useCurrentPrice(symbols: string[]) {
 }
 
 export function useCurrencyConversion(currencies: string[]) {
-  return useQuery({
+  return useQuery<{
+    [symbol: string]: PricePoint;
+  }>({
     queryKey: ["currencyConversion", currencies],
     queryFn: async () => {
       const response = await fetch(`${API_URL}/currencies`, {

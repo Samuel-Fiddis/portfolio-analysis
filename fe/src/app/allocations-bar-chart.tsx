@@ -27,9 +27,6 @@ export default function AllocationsBarChart({
     ).toFixed(2),
   }));
 
-  console.log(yourAllocation);
-  console.log(data);
-
   return (
     <div className="overflow-x-auto">
       <p className="text-center font-semibold">Instrument Allocations</p>

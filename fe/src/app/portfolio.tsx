@@ -71,9 +71,9 @@ export default function PortfolioDataTable({
         instrumentType: r.instrument_type,
         currentShares: 0,
         value: 0,
-        optimisedAllocation: undefined,
         currency: r.currency,
         exchange: r.exchange,
+        yourAllocation: 0,
       };
     });
     setPortfolio((prevPortfolio) => {

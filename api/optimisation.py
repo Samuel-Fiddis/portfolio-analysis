@@ -13,9 +13,15 @@ from analysis import (
 
 
 def optimise_portfolio(data, time_period):
+    """Runs through a range of gamma values to compute the efficiency frontier of the portfolio.
+    https://www.investopedia.com/terms/e/efficientfrontier.asp
+    :param data: DataFrame containing historical data with columns 'trade_date', 'symbol', and 'change_percent'.
+    :param time_period: The time period for which to calculate the averages and standard deviations.
+    :return: List of optimal portfolios with their weights, standard deviation, arithmetic mean, and geometric mean.
+    """
     n = len(data["symbol"].unique())
 
-    SAMPLES = 200  # Number of samples for gamma values
+    SAMPLES = 200
 
     avg = get_averages(data)
     cov_matrix = get_covariance_matrix(data)
