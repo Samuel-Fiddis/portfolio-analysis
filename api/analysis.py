@@ -8,7 +8,10 @@ def get_correlation_matrix(df):
 
 
 def get_covariance_matrix(df):
-    return df.pivot(index="trade_date", columns="symbol", values="change_percent").cov()
+    cov_matrix = df.pivot(index="trade_date", columns="symbol", values="change_percent").cov()
+    # Ensure symmetry to avoid cvxpy errors
+    cov_matrix = 0.5 * (cov_matrix + cov_matrix.T)
+    return cov_matrix
 
 
 def get_averages(df, input_period=None, output_period=None):

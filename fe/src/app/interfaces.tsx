@@ -1,3 +1,4 @@
+
 export interface PortfolioItem {
   instrumentType: InstrumentType;
   symbol: string;
@@ -20,18 +21,13 @@ export interface PortfolioWeight {
 }
 export interface OptimisedValues {
   historical_data: Record<string, HistoricalDataPoint[]>;
+  time_period: PeriodType;
   stock_stats: {
     std_dev: Record<string, number>;
     avg_return: Record<string, number>;
     corr_matrix: Record<string, Record<string, number>>;
   };
   optimisation_results: OptimisationResult[];
-}
-
-interface HistoricalDataPoint {
-  trade_date: string;
-  close_price: number;
-  change_percent: number;
 }
 
 export interface OptimisationResult {
@@ -92,10 +88,12 @@ export interface ETFsOptions {
   exchange?: string[];
 }
 
+export type PeriodType = "yearly" | "monthly" | "daily";
+
 export interface OptimisationSettings {
   // risklessBorrowingRate: number;
   // risklessLendingRate: number;
-  timePeriod: "daily" | "monthly";
+  timePeriod: PeriodType;
   startTime: Date;
   endTime: Date;
 }
@@ -152,3 +150,20 @@ export const DEFAULT_OPTIMISATION_SETTINGS: OptimisationSettings = {
   startTime: new Date(new Date().setFullYear(new Date().getFullYear() - 5, new Date().getMonth(), new Date().getDate())),
   endTime: new Date(),
 }
+
+export interface HistoricalDataPoint {
+  trade_date: string;
+  close_price: number;
+  change_percent: number;
+}
+
+export interface QuoteEntry {
+  historical_data: HistoricalDataPoint[];
+  std_dev: number;
+  avg_return: number;
+}
+
+export interface QuoteData {
+  [symbol: string]: QuoteEntry;
+}
+

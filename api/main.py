@@ -363,6 +363,7 @@ async def optimise_portfolio_route(settings: OptimisationSettings):
 
     return {
         "optimisation_results": op,
+        "time_period": settings.time_period,
         "historical_data": data.groupby("symbol")[
             ["trade_date", "close_price", "change_percent"]
         ]

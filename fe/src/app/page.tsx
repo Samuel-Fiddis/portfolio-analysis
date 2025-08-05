@@ -27,28 +27,27 @@ import { Optimisation } from "./optimisation";
 import { CorrelationHeatmap } from "./correlation-heatmap";
 import AllocationsBarChart from "./allocations-bar-chart";
 
-// Constants
 const PERCENTAGE_MULTIPLIER = 100;
 const MIN_ALLOCATION_VALUE = 0.0000000001;
 const ISO_DATE_LENGTH = 10;
 
-// Utility functions with error handling
 const calculateTotalPortfolioValue = (
   portfolio: PortfolioItem[],
   quotes: Record<string, any> | undefined,
   currencyRates: Record<string, number> | undefined
 ): number => {
   if (!portfolio?.length || !quotes || !currencyRates) return 0;
-  
+
   return portfolio.reduce((sum, item) => {
     try {
       const quote = quotes[item.symbol];
       const currencyRate = currencyRates[item.currency];
-      
-      if (!quote || typeof quote.price !== 'number' || !currencyRate) return sum;
+
+      if (!quote || typeof quote.price !== "number" || !currencyRate)
+        return sum;
       if (item.currentShares < 0) return sum;
-      
-      return sum + (quote.price * item.currentShares * currencyRate);
+
+      return sum + quote.price * item.currentShares * currencyRate;
     } catch (error) {
       console.warn(`Error calculating value for ${item.symbol}:`, error);
       return sum;
@@ -57,9 +56,9 @@ const calculateTotalPortfolioValue = (
 };
 
 const calculateItemValue = (item: PortfolioItem, quote: any): number => {
-  if (!item || !quote || typeof quote.price !== 'number') return 0;
+  if (!item || !quote || typeof quote.price !== "number") return 0;
   if (item.currentShares < 0) return 0;
-  
+
   return quote.price * item.currentShares;
 };
 
@@ -69,9 +68,10 @@ const calculateAllocationPercentage = (
   totalValue: number
 ): number => {
   if (!currencyRate || totalValue <= 0 || itemValue < 0) return 0;
-  if (!isFinite(itemValue) || !isFinite(totalValue) || !isFinite(currencyRate)) return 0;
-  
-  return (itemValue * currencyRate / totalValue) * PERCENTAGE_MULTIPLIER;
+  if (!isFinite(itemValue) || !isFinite(totalValue) || !isFinite(currencyRate))
+    return 0;
+
+  return ((itemValue * currencyRate) / totalValue) * PERCENTAGE_MULTIPLIER;
 };
 
 const attachQuotesToPortfolio = (
@@ -80,21 +80,25 @@ const attachQuotesToPortfolio = (
   currencyRates: Record<string, number> | undefined
 ) => {
   if (!portfolio?.length) return [];
-  
-  const totalValue = calculateTotalPortfolioValue(portfolio, quotes, currencyRates);
-  
+
+  const totalValue = calculateTotalPortfolioValue(
+    portfolio,
+    quotes,
+    currencyRates
+  );
+
   return portfolio.map((item) => {
     try {
       const quote = quotes?.[item.symbol];
       if (!quote) return item;
-      
+
       const itemValue = calculateItemValue(item, quote);
       const allocationPercentage = calculateAllocationPercentage(
         itemValue,
         currencyRates?.[item.currency],
         totalValue
       );
-      
+
       return {
         ...item,
         sharePrice: quote.price,
@@ -110,20 +114,25 @@ const attachQuotesToPortfolio = (
 };
 
 const createYourPortfolioResult = (
-  optimisationData: any,
-  portfolioWithQuotes: any[]
+  optimisationData: OptimisedValues | undefined,
+  portfolioWithQuotes: any[],
 ): OptimisationResult | null => {
-  if (!optimisationData?.stock_stats || !portfolioWithQuotes?.length) return null;
-  
+  if (!optimisationData?.stock_stats || !portfolioWithQuotes?.length)
+    return null;
+
   try {
-    const { stock_stats, historical_data } = optimisationData;
-    
+    const { stock_stats, historical_data, time_period } = optimisationData;
+    console.log(optimisationData);
+
     return {
       arithmetic_mean: stock_stats.avg_return
-        ? getArithmeticPortfolioReturn(portfolioWithQuotes, stock_stats.avg_return)
+        ? getArithmeticPortfolioReturn(
+            portfolioWithQuotes,
+            stock_stats.avg_return
+          )
         : 0,
       geometric_mean: historical_data
-        ? getPortfolioGeometricReturn(portfolioWithQuotes, historical_data)
+        ? getPortfolioGeometricReturn(portfolioWithQuotes, historical_data, time_period)
         : 0,
       std_dev: stock_stats.std_dev
         ? getPortfolioStandardDeviation(
@@ -133,12 +142,12 @@ const createYourPortfolioResult = (
           )
         : 0,
       weights: portfolioWithQuotes.map((item) => ({
-        symbol: item.symbol || '',
+        symbol: item.symbol || "",
         value_proportion: item.yourAllocation || 0,
       })),
     };
   } catch (error) {
-    console.warn('Error creating portfolio result:', error);
+    console.warn("Error creating portfolio result:", error);
     return null;
   }
 };
@@ -148,27 +157,31 @@ const attachOptimisationToPortfolio = (
   optimisationResults: any[],
   gamma: number
 ) => {
-  if (!portfolioWithQuotes?.length || !optimisationResults?.length) return portfolioWithQuotes || [];
-  
+  if (!portfolioWithQuotes?.length || !optimisationResults?.length)
+    return portfolioWithQuotes || [];
+
   try {
-    const safeGamma = Math.max(0, Math.min(gamma, optimisationResults.length - 1));
-    const selectedResult = optimisationResults[safeGamma] ?? optimisationResults[0];
-    
+    const safeGamma = Math.max(
+      0,
+      Math.min(gamma, optimisationResults.length - 1)
+    );
+    const selectedResult =
+      optimisationResults[safeGamma] ?? optimisationResults[0];
+
     if (!selectedResult?.weights) return portfolioWithQuotes;
-    
+
     const weightsMap = Object.fromEntries(
       selectedResult.weights.map((w: any) => [w.symbol, w.value_proportion])
     );
-    
+
     return portfolioWithQuotes.map((item) => ({
       ...item,
-      optimisedAllocation: Math.max(
-        weightsMap[item.symbol] || 0,
-        MIN_ALLOCATION_VALUE
-      ) * PERCENTAGE_MULTIPLIER,
+      optimisedAllocation:
+        Math.max(weightsMap[item.symbol] || 0, MIN_ALLOCATION_VALUE) *
+        PERCENTAGE_MULTIPLIER,
     }));
   } catch (error) {
-    console.warn('Error attaching optimisation to portfolio:', error);
+    console.warn("Error attaching optimisation to portfolio:", error);
     return portfolioWithQuotes;
   }
 };
@@ -178,18 +191,18 @@ const attachAnalysisToPortfolio = (
   optimisationData: any
 ) => {
   if (!portfolioWithOptimisation?.length) return [];
-  
+
   try {
     const stdDev = optimisationData?.stock_stats?.std_dev ?? {};
     const avgReturn = optimisationData?.stock_stats?.avg_return ?? {};
-    
+
     return portfolioWithOptimisation.map((item) => ({
       ...item,
       stdDev: stdDev[item.symbol] ?? item.stdDev,
       avgReturn: avgReturn[item.symbol] ?? item.avgReturn,
     }));
   } catch (error) {
-    console.warn('Error attaching analysis to portfolio:', error);
+    console.warn("Error attaching analysis to portfolio:", error);
     return portfolioWithOptimisation;
   }
 };
@@ -215,13 +228,11 @@ const extractUniqueCurrencies = (portfolio: PortfolioItem[]): string[] => {
 const AnalysisResults = ({
   gamma,
   setGamma,
-  optimisationResults,
   yourPortfolio,
   optimisationData,
 }: {
   gamma: number;
   setGamma: (gamma: number) => void;
-  optimisationResults: any[];
   yourPortfolio: OptimisationResult | null;
   optimisationData: any;
 }) => (
@@ -229,20 +240,20 @@ const AnalysisResults = ({
     <OptimisationSlider
       gamma={gamma}
       setGamma={setGamma}
-      optimisationResults={optimisationResults}
+      optimisationResults={optimisationData?.optimisation_results || []}
     />
     <h2 className="text-2xl font-bold mb-6 text-center">
       Analysis and Optimisation Results
     </h2>
     <div className="flex flex-col w-full gap-8 items-center justify-center">
       <EfficiencyFrontierChart
-        optimisedPortfolios={optimisationResults}
-        selectedPortfolio={optimisationResults[gamma]}
+        optimisedPortfolios={optimisationData?.optimisation_results || []}
+        selectedPortfolio={optimisationData?.optimisation_results[gamma]}
         yourPortfolio={yourPortfolio}
       />
       {optimisationData && (
         <AllocationsBarChart
-          optimisedAllocation={optimisationResults[gamma].weights}
+          optimisedAllocation={optimisationData?.optimisation_results[gamma]?.weights}
           yourAllocation={yourPortfolio?.weights}
         />
       )}
@@ -273,21 +284,19 @@ function MainApp() {
     useState<OptimisationSettings>(DEFAULT_OPTIMISATION_SETTINGS);
   const [gamma, setGamma] = useState<number>(0);
 
-  // Extract symbols and currencies from portfolio
   const symbols = useMemo(() => extractUniqueSymbols(portfolio), [portfolio]);
-  const currencies = useMemo(() => extractUniqueCurrencies(portfolio), [portfolio]);
-  
-  // Fetch current prices and currency rates
+  const currencies = useMemo(
+    () => extractUniqueCurrencies(portfolio),
+    [portfolio]
+  );
   const { data: quotes } = useCurrentPrice(symbols);
   const { data: currencyRates } = useCurrencyConversion(currencies);
 
-  // Attach current price and value to each portfolio item
   const portfolioWithQuotes = useMemo(
     () => attachQuotesToPortfolio(portfolio, quotes, currencyRates),
     [portfolio, quotes, currencyRates]
   );
 
-  // Remove optimisation results when portfolio length changes
   useEffect(() => {
     queryClient.removeQueries({ queryKey: ["portfolioOptimise"] });
   }, [portfolio.length]);
@@ -304,13 +313,19 @@ function MainApp() {
     optimisationSettings.endTime.toISOString().slice(0, ISO_DATE_LENGTH)
   );
 
+  const resetOptimisation = () => {
+    refetchOptimisation();
+    setGamma(0);
+  }
+
   // Create optimisation component
   const optimisationComponent = Optimisation({
     optimisationSettings,
     setOptimisationSettings,
-    refetchOptimisation,
+    refetchOptimisation: resetOptimisation,
     isOptimising,
   });
+
 
   // Calculate your portfolio metrics
   const yourPortfolio = useMemo(
@@ -322,13 +337,19 @@ function MainApp() {
 
   // Attach optimised allocation to each item
   const portfolioWithOptimisation = useMemo(
-    () => attachOptimisationToPortfolio(portfolioWithQuotes, optimisationResults, gamma),
+    () =>
+      attachOptimisationToPortfolio(
+        portfolioWithQuotes,
+        optimisationResults,
+        gamma
+      ),
     [portfolioWithQuotes, optimisationResults, gamma]
   );
 
   // Attach analysis stats to each item
   const portfolioWithAnalysis = useMemo(
-    () => attachAnalysisToPortfolio(portfolioWithOptimisation, optimisationData),
+    () =>
+      attachAnalysisToPortfolio(portfolioWithOptimisation, optimisationData),
     [portfolioWithOptimisation, optimisationData]
   );
 
@@ -350,7 +371,6 @@ function MainApp() {
           <AnalysisResults
             gamma={gamma}
             setGamma={setGamma}
-            optimisationResults={optimisationResults}
             yourPortfolio={yourPortfolio}
             optimisationData={optimisationData}
           />

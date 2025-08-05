@@ -7,6 +7,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { QuoteData } from "./interfaces";
 
 const lineColors = [
   "#8884d8", // purple
@@ -20,22 +21,6 @@ const lineColors = [
   "#FF6699", // pink
   "#33CCFF", // light blue
 ];
-
-export interface HistoricalDataPoint {
-  trade_date: string;
-  close_price: number;
-  change_percent: number;
-}
-
-export interface QuoteEntry {
-  historical_data: HistoricalDataPoint[];
-  std_dev: number;
-  avg_return: number;
-}
-
-export interface QuoteData {
-  [symbol: string]: QuoteEntry;
-}
 
 export default function StockChart({ data }: { data: QuoteData }) {
   const symbols: string[] = Object.keys(data);

@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   Legend,
   Scatter,
+  Tooltip,
 } from "recharts";
 import { OptimisationResult } from "./interfaces";
 
@@ -37,6 +38,8 @@ export default function EfficiencyFrontierChart({
   const yBuffer = returnRange * yBoarderBuffer;
 
   const fontSize = 14;
+
+  console.log("Your Portfolio:", yourPortfolio);
 
   return (
     <div className="overflow-x-auto">
@@ -99,6 +102,7 @@ export default function EfficiencyFrontierChart({
             shape="circle"
           />
         )}
+        <Tooltip />
         <Legend
           verticalAlign="top"
           align="center"

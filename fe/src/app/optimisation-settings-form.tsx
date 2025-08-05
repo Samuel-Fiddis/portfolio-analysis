@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -13,7 +12,7 @@ import {
 
 import {
   OPTIMISATION_SETTINGS_DESCRIPTIONS,
-  OptimisationSettings,
+  OptimisationSettings
 } from "./interfaces";
 import { useDebounce } from "@uidotdev/usehooks";
 import { MonthPicker } from "@/components/ui/monthpicker";
@@ -67,7 +66,7 @@ export function OptimisationForm({
       case "date":
         return (
           <>
-            {localSettings.timePeriod === "monthly" ? (
+            {localSettings.timePeriod == "monthly" ? (
               <MonthPicker
                 selectedMonth={
                   localSettings[key as keyof OptimisationSettings] as Date
