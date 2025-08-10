@@ -46,8 +46,6 @@ def optimise_portfolio(data, time_period):
         arithmentic_mean = adjust_averages_for_period(ret.value[0], time_period, "yearly") #arithmetic mean
         std_annualised = adjust_std_dev_for_period(np.sqrt(risk.value), time_period, "yearly")
         drawdown = get_portfolio_drawdown_percentage(data, weights)
-        if i == 0:
-            print(drawdown["drawdown"].reset_index(name="value"))
         optimal_portfolios.append(
             {
                 "gamma": gamma_vals[i],
