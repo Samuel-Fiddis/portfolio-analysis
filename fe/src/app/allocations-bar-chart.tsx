@@ -57,7 +57,8 @@ export default function AllocationsBarChart({
           }}
         />
         <Tooltip />
-        <Legend />
+        <Legend 
+        formatter={(value) => <span style={{ color: "black" }}>{value}</span>}/>
         <Bar
           dataKey="optimisedValue"
           name="Selected Optimised Portfolio"

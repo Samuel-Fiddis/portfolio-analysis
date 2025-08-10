@@ -24,7 +24,7 @@ export const DrawdownChart = ({
     )
       .toISOString()
       .slice(0, 10),
-    value: item.value * 100,
+    value: parseFloat((item.value * 100).toFixed(2)),
   }));
 
   return (
@@ -87,12 +87,12 @@ export const DrawdownChart = ({
               {maxDrawdown?.start_date.slice(0, 10) || "N/A"}
             </div>
             <div>
-              <span className="font-semibold">End Date:</span>{" "}
-              {maxDrawdown?.end_date.slice(0, 10) || "N/A"}
-            </div>
-            <div>
               <span className="font-semibold">Bottom Date:</span>{" "}
               {maxDrawdown?.bottom_date.slice(0, 10) || "N/A"}
+            </div>
+            <div>
+              <span className="font-semibold">End Date:</span>{" "}
+              {maxDrawdown?.end_date.slice(0, 10) || "N/A"}
             </div>
           </div>
         </div>

@@ -107,6 +107,7 @@ export default function EfficiencyFrontierChart({
           verticalAlign="top"
           align="center"
           wrapperStyle={{ fontSize }}
+          formatter={(value) => <span style={{ color: "black" }}>{value}</span>}
         />
       </LineChart>
     </div>

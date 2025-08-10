@@ -1,6 +1,8 @@
 import pytest
 import pandas as pd
 
+from pandas.testing import assert_frame_equal
+
 from analysis import (
     get_averages,
     get_geometric_mean,
@@ -10,6 +12,14 @@ from analysis import (
     get_portfolio_drawdown_percentage,
     get_symbols_drawdown_percentage,
 )
+
+@pytest.fixture
+def optimisation_min_variance_drawdown():
+    data = pd.read_csv('tests/data/optimisation_min_variance_drawdown.csv')
+    data['trade_date'] = pd.to_datetime(data['trade_date'])
+    data.sort_values(by='trade_date', inplace=True)
+    data.reset_index(drop=True, inplace=True)
+    return data
 
 
 @pytest.fixture
@@ -95,12 +105,20 @@ class TestAnalysis:
             expected_drawdown, rel=1e-3
         )
 
-    def test_portfolio_drawdown_percentage(self, optimisation_test_data):
+    def test_portfolio_drawdown_percentage(self, optimisation_test_data, optimisation_min_variance_drawdown):
         # Equal weights portfolio
         weights = pd.Series({"MSFT": 0.7037, "AAPL": 0.1479, "DELL": 0.1484})
         portfolio_drawdown = get_portfolio_drawdown_percentage(
             optimisation_test_data, weights
         )
+
+        drawdown_df = portfolio_drawdown['drawdown'].reset_index(name="value")
+        drawdown_df['trade_date'] = pd.to_datetime(drawdown_df['trade_date'])
+        drawdown_df['value'] = (drawdown_df['value'] * 100).round(2)
+        drawdown_df.sort_values(by='trade_date', inplace=True)
+
+        assert_frame_equal(drawdown_df, optimisation_min_variance_drawdown, atol=1e-1)
+
         assert portfolio_drawdown["max_drawdown"]["percent"] == pytest.approx(
             -30.10, rel=1e-3
         )
