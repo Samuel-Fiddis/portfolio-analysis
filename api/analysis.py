@@ -42,7 +42,7 @@ def get_geometric_mean(df, weights, input_period=None, output_period=None):
         lambda x: 1 + (x / 100)
     )  # Convert to decimal
     time_periods = len(data.index)
-    geo_mean = ((data * weights).sum(axis=1).prod() ** (1 / time_periods) - 1) * 100
+    geo_mean = ((data * weights).sum(axis=1).prod() ** (1 / time_periods) - 1) * 100 # Convert back to percentage
     return adjust_averages_for_period(geo_mean, input_period, output_period)
 
 

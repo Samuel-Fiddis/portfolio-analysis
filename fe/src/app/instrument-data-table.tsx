@@ -6,9 +6,9 @@ import { DataTable } from "@/components/custom/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
 import { getTableColumns } from "./table-columns";
-import { API_URL } from "./custom-hooks";
+import { useDebounce } from "@uidotdev/usehooks";
+import { useInstrumentSearchQuery } from "./custom-hooks";
 import { InstrumentRow, InstrumentType } from "./interfaces";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -42,43 +42,28 @@ export default function InstrumentDataTable({
     perPage: parseAsString.withDefault("10"),
   });
 
+  const debouncedQueryValues = useDebounce(searcyQueryValues, 500);
+
   const instrumentTypes: InstrumentType[] = ["Equities", "ETFs"];
   const [selectedType, setSelectedType] = useState<InstrumentType>("Equities");
 
-  const {
-    data = { data: [], pageCount: 0, options: {} },
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["instrument-search", selectedType, searcyQueryValues],
-    queryFn: async () => {
-      const response = await fetch(`${API_URL}/search`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          index: searcyQueryValues.symbol,
-          instrument_type: selectedType,
-          currency: searcyQueryValues.currency,
-          exchange: searcyQueryValues.exchange,
-          sector: searcyQueryValues.sector,
-          industry: searcyQueryValues.industry,
-          category: searcyQueryValues.category,
-          category_group: searcyQueryValues.category_group,
-          family: searcyQueryValues.family,
-          page: searcyQueryValues.page,
-          page_size: searcyQueryValues.perPage,
-        }),
-      });
-      if (!response.ok) throw new Error("Network response was not ok");
-      const result = await response.json();
-      // Ensure options is always present
-      return {
-        data: result.data || [],
-        pageCount: result.pageCount || 0,
-        options: result.options || {},
-      };
-    },
-  });
+const { data = { data: [], pageCount: 0, options: {} }, isLoading, error } = useInstrumentSearchQuery(
+  {
+    symbol: debouncedQueryValues.symbol,
+    name: debouncedQueryValues.symbol,
+    instrument_type: selectedType,
+    currency: debouncedQueryValues.currency,
+    exchange: debouncedQueryValues.exchange,
+    sector: debouncedQueryValues.sector,
+    industry: debouncedQueryValues.industry,
+    category: debouncedQueryValues.category,
+    category_group: debouncedQueryValues.category_group,
+    family: debouncedQueryValues.family,
+    page: debouncedQueryValues.page,
+    page_size: debouncedQueryValues.perPage,
+  },
+  ["instrument-search", selectedType, debouncedQueryValues]
+);
 
   const columns = useMemo(
     () =>
@@ -114,7 +99,7 @@ export default function InstrumentDataTable({
       onValueChange={(val) => setSelectedType(val as InstrumentType)}
     >
       <SelectTrigger className="w-[100px]">
-        <SelectValue placeholder="Select instrument type" />
+        <SelectValue placeholder="Select instrument type"/>
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>

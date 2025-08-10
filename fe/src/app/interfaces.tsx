@@ -172,3 +172,19 @@ export interface QuoteData {
   [symbol: string]: QuoteEntry;
 }
 
+export interface InstrumentSearchPayload {
+  symbol?: string;
+  name?: string;
+  instrument_type?: InstrumentType;
+  currency?: string[] | null;
+  exchange?: string[] | null;
+  sector?: string[] | null;
+  industry?: string[] | null;
+  category?: string[] | null;
+  category_group?: string[] | null;
+  family?: string[] | null;
+  page_size?: string | null;
+  page?: string | null;
+  options?: Record<string, string[]>;
+
+}

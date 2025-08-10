@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { OptimisedValues, PortfolioItem, PricePoint } from "./interfaces";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import { OptimisedValues, PortfolioItem, PricePoint, InstrumentSearchPayload, InstrumentRow } from "./interfaces";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -95,5 +95,35 @@ export function useAnalyseInstruments(
       return response.json();
     },
     enabled: false,
+  });
+}
+
+
+export function useInstrumentSearchQuery(
+  payload: InstrumentSearchPayload,
+  queryKey: (string | unknown)[]
+): UseQueryResult<{
+  data: InstrumentRow[];
+  pageCount: number;
+  options: Record<string, any>;
+}>  {
+  return useQuery({
+    queryKey,
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/instruments/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error("Network response was not ok");
+      const result = await response.json();
+      // Always return a consistent shape
+      return {
+        data: result.data || [],
+        pageCount: result.pageCount || 0,
+        options: result.options || {},
+      };
+    },
+    enabled: !!payload && Object.values(payload).some((v) => v), // Only run if there's at least one non-falsy value
   });
 }

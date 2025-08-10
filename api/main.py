@@ -3,6 +3,7 @@ from time import sleep
 import asyncio
 from datetime import datetime
 from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import numpy as np
@@ -62,6 +63,7 @@ while EQUITIES is None or ETFS is None:
     try:
         if EQUITIES is None:
             EQUITIES = fd.Equities()
+            log.info(EQUITIES.data.head())
         if ETFS is None:
             ETFS = fd.ETFs()
         log.info("Initialised financial data")
@@ -87,7 +89,8 @@ class SearchCategories(BaseModel):
     page_size: Optional[int] = 10
     filters: Optional[Dict[str, Any]] = None
     # Values common to all search options
-    index: Optional[str] = None
+    symbol: Optional[str] = None
+    name: Optional[str] = None
     currency: Optional[StringList] = None
     instrument_type: Optional[str] = None
 
@@ -112,7 +115,7 @@ class ETFsSearchOptions(SearchCategories):
 SearchOptions = Union[EquitiesSearchOptions, ETFsSearchOptions]
 
 
-app = FastAPI()
+app = FastAPI(description="Portfolio Analysis API", version="1.0.0", default_response_class=ORJSONResponse)
 
 app.add_middleware(
     CORSMiddleware,
@@ -160,7 +163,7 @@ async def health_check():
     return {"status": "ok"}
 
 
-@app.post("/search", response_model=Dict[str, Any])
+@app.post("/instruments/search", response_model=Dict[str, Any])
 async def search_instruments(search_values: SearchOptions):
     instrument_type = search_values.instrument_type
     search_values.instrument_type = None
@@ -182,17 +185,15 @@ async def search_instruments(search_values: SearchOptions):
 
 def search_instruments_helper(search_values, DB, instrument_type_label):
     req_json = search_values.model_dump(exclude_none=True)
+    symbol = req_json.pop("symbol", "")
+    name = req_json.pop("name", "")
     page = req_json.pop("page", None)
     page_size = req_json.pop("page_size", None)
     options = {k: v.astype(str).tolist() for k, v in DB.show_options().items()}
-    if getattr(search_values, "index", None) is not None:
-        results = json.loads(
-            DB.search(**req_json).reset_index().to_json(orient="records")
-        )
-    else:
-        results = json.loads(
-            DB.select(**req_json).reset_index().to_json(orient="records")
-        )
+    results = DB.select(**req_json)
+    results = results[results.index.str.contains(symbol) | results["name"].str.contains(name)]
+    log.info(results.head())
+    results = json.loads(results.reset_index().to_json(orient="records"))
     for item in results:
         item["instrument_type"] = instrument_type_label
     if page_size is None or page is None:
