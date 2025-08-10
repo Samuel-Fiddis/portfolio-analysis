@@ -80,14 +80,15 @@ export default function EfficiencyFrontierChart({
           type="monotone"
           dataKey="geometric_mean"
           name="Efficiency Frontier"
-          stroke="#8884d8"
+          stroke="#288cfa"
           isAnimationActive={false}
         />
         {selectedPortfolio && (
           <Scatter
-            name="Selected Portfolio"
+            name="Selected Optimised Portfolio"
             data={[selectedPortfolio]}
-            fill="#22c55e"
+            fill="#66A3FF"
+            stroke="#001f3f"
             shape="circle"
             isAnimationActive={false}
           />
@@ -96,7 +97,8 @@ export default function EfficiencyFrontierChart({
           <Scatter
             name="Your Portfolio"
             data={[yourPortfolio]}
-            fill="#FF4136"
+            fill="#8884d8"
+            stroke="#001f3f"
             shape="circle"
           />
         )}

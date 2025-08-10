@@ -63,7 +63,6 @@ while EQUITIES is None or ETFS is None:
     try:
         if EQUITIES is None:
             EQUITIES = fd.Equities()
-            log.info(EQUITIES.data.head())
         if ETFS is None:
             ETFS = fd.ETFs()
         log.info("Initialised financial data")
@@ -192,7 +191,6 @@ def search_instruments_helper(search_values, DB, instrument_type_label):
     options = {k: v.astype(str).tolist() for k, v in DB.show_options().items()}
     results = DB.select(**req_json)
     results = results[results.index.str.contains(symbol) | results["name"].str.contains(name)]
-    log.info(results.head())
     results = json.loads(results.reset_index().to_json(orient="records"))
     for item in results:
         item["instrument_type"] = instrument_type_label
@@ -315,7 +313,7 @@ def filter_existing_data(
     return data[data["symbol"].isin(keep_symbols)]
 
 
-@app.post("/portfolio/optimise", response_model=Dict[str, Any])
+@app.post("/portfolio/optimise", response_class=ORJSONResponse)
 async def optimise_portfolio_route(settings: OptimisationSettings):
     """Optimise a portfolio based on the provided portfolio data."""
     data = read_data_from_db(settings)
@@ -345,12 +343,11 @@ async def optimise_portfolio_route(settings: OptimisationSettings):
         "historical_data": data.groupby("symbol")[
             ["trade_date", "close_price", "change_percent"]
         ]
-        .apply(lambda x: x.to_dict(orient="records"))
-        .to_dict(),
+        .apply(lambda x: x.to_dict(orient="records")),
         "stock_stats": {
-            "std_dev": std.to_dict(),
-            "avg_return": ret.to_dict(),
-            "corr_matrix": corr_matrix.to_dict(),
+            "std_dev": std,
+            "avg_return": ret,
+            "corr_matrix": corr_matrix,
         },
     }
 

@@ -27,6 +27,7 @@ import {
 import { Optimisation } from "./optimisation";
 import { CorrelationHeatmap } from "./correlation-heatmap";
 import AllocationsBarChart from "./allocations-bar-chart";
+import { DrawdownChart } from "./drawdown-chart";
 
 const PERCENTAGE_MULTIPLIER = 100;
 const MIN_ALLOCATION_VALUE = 0.0000000001;
@@ -146,6 +147,13 @@ const createYourPortfolioResult = (
         symbol: item.symbol || "",
         value_proportion: item.yourAllocation || 0,
       })),
+      drawdown: [],
+      max_drawdown: {
+        percent: 0,
+        start_date: "",
+        end_date: "",
+        bottom_date: "",
+      }
     };
   } catch (error) {
     console.warn("Error creating portfolio result:", error);
@@ -253,15 +261,25 @@ const AnalysisResults = ({
         yourPortfolio={yourPortfolio}
       />
       {optimisationData && (
-        <AllocationsBarChart
-          optimisedAllocation={optimisationData?.optimisation_results[gamma]?.weights}
-          yourAllocation={yourPortfolio?.weights}
+        <DrawdownChart
+          drawdownData={optimisationData?.optimisation_results[gamma]?.drawdown || []}
+          maxDrawdown={optimisationData?.optimisation_results[gamma]?.max_drawdown}
         />
       )}
       {optimisationData && (
-        <CorrelationHeatmap
-          corrMatrix={optimisationData?.stock_stats.corr_matrix}
-        />
+        <div className="flex flex-row w-full gap-8 items-stretch justify-center">
+          <div className="flex-1">
+            <AllocationsBarChart
+              optimisedAllocation={optimisationData?.optimisation_results[gamma]?.weights}
+              yourAllocation={yourPortfolio?.weights}
+            />
+          </div>
+          <div className="flex-1">
+            <CorrelationHeatmap
+              corrMatrix={optimisationData?.stock_stats.corr_matrix}
+            />
+          </div>
+        </div>
       )}
     </div>
   </>

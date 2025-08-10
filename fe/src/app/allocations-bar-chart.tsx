@@ -31,7 +31,7 @@ export default function AllocationsBarChart({
     <div className="overflow-x-auto">
       <p className="text-center font-semibold">Instrument Allocations</p>
       <BarChart
-        width={500}
+        width={800}
         height={300}
         data={data}
         margin={{
@@ -40,6 +40,7 @@ export default function AllocationsBarChart({
           left: 20,
           bottom: 5,
         }}
+        title="Instrument Allocations"
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="symbol" />
@@ -59,15 +60,15 @@ export default function AllocationsBarChart({
         <Legend />
         <Bar
           dataKey="optimisedValue"
-          name="Optimised Portfiolio"
-          fill="#8884d8"
+          name="Selected Optimised Portfolio"
+          fill="#66A3FF"
           activeBar={<Rectangle fill="pink" stroke="blue" />}
           isAnimationActive={false}
         />
         <Bar
           dataKey="yourValue"
           name="Your Portfolio"
-          fill="#82ca9d"
+          fill="#8884d8"
           activeBar={<Rectangle fill="gold" stroke="purple" />}
           isAnimationActive={false}
         />

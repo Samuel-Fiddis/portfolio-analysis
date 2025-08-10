@@ -8,7 +8,7 @@ from analysis import (
     adjust_std_dev_for_period,
     get_averages,
     get_covariance_matrix,
-    get_geometric_mean,
+    get_geometric_mean,    get_portfolio_drawdown_percentage
 )
 
 
@@ -45,6 +45,9 @@ def optimise_portfolio(data, time_period):
         geometric_mean = get_geometric_mean(data, weights, time_period, "yearly")
         arithmentic_mean = adjust_averages_for_period(ret.value[0], time_period, "yearly") #arithmetic mean
         std_annualised = adjust_std_dev_for_period(np.sqrt(risk.value), time_period, "yearly")
+        drawdown = get_portfolio_drawdown_percentage(data, weights)
+        if i == 0:
+            print(drawdown["drawdown"].reset_index(name="value"))
         optimal_portfolios.append(
             {
                 "gamma": gamma_vals[i],
@@ -56,6 +59,8 @@ def optimise_portfolio(data, time_period):
                         {"symbol": avg.index, "value_proportion": w.value}
                     ).to_json(orient="records")
                 ),
+                "drawdown": json.loads(drawdown["drawdown"].reset_index(name="value").to_json(orient="records")),
+                "max_drawdown": drawdown["max_drawdown"]
             }
         )
 

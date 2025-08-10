@@ -30,6 +30,18 @@ export interface OptimisedValues {
   optimisation_results: OptimisationResult[];
 }
 
+export interface DrawdownData {
+  trade_date: number;
+  value: number;
+}
+
+export interface DrawdownDetails {
+  percent: number;
+  start_date: string;
+  end_date: string;
+  bottom_date: string;
+}
+
 export interface OptimisationResult {
   gamma?: number;
   std_dev: number;
@@ -37,6 +49,8 @@ export interface OptimisationResult {
   geometric_mean: number;
   sharpe_ratio_annualised?: number;
   weights: PortfolioWeight[];
+  drawdown: DrawdownData[];
+  max_drawdown: DrawdownDetails;
 }
 export interface CurrentPrice {
   price: number;
