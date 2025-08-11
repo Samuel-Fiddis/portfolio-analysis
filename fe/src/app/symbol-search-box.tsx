@@ -63,7 +63,7 @@ const { data, isLoading, error } = useInstrumentSearchQuery(
             <ul>
               {data.data.map((item: any) => (
                 <li
-                  key={item.symbol + "-1"}
+                  key={item.symbol + "-" + item.name + "-1"}
                   className="py-1 border-b last:border-b-0 cursor-pointer hover:bg-gray-100"
                   onMouseDown={() => handleSelect(item)}
                 >
