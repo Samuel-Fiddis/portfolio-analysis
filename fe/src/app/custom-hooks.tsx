@@ -110,6 +110,7 @@ export function useInstrumentSearchQuery(
   return useQuery({
     queryKey,
     queryFn: async () => {
+      console.log("Fetching instrument search data with payload:", payload);
       const response = await fetch(`${API_URL}/instruments/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -72,6 +72,11 @@ while EQUITIES is None or ETFS is None:
         ETFS = None
         sleep(1)
 
+INSTRUMENT_NAME_MAPPING = {
+    "Equities": "Equity",
+    "ETFs": "ETF",
+}
+
 StringList = Union[str, List[str]]
 
 
@@ -82,36 +87,31 @@ class OptimisationSettings(BaseModel):
     end_time: str
 
 
-class SearchCategories(BaseModel):
+class SearchOptions(BaseModel):
     # Values used by React Search DataTable
     page: Optional[int] = 1
     page_size: Optional[int] = 10
     filters: Optional[Dict[str, Any]] = None
+
     # Values common to all search options
     symbol: Optional[str] = None
     name: Optional[str] = None
     currency: Optional[StringList] = None
     instrument_type: Optional[str] = None
+    exchange: Optional[StringList] = None
 
-
-class EquitiesSearchOptions(SearchCategories):
+    # Equities options
     sector: Optional[StringList] = None
     industry_group: Optional[StringList] = None
     industry: Optional[StringList] = None
-    exchange: Optional[StringList] = None
     market: Optional[StringList] = None
     country: Optional[StringList] = None
     market_cap: Optional[StringList] = None
 
-
-class ETFsSearchOptions(SearchCategories):
+    # ETF options
     category_group: Optional[StringList] = None
     category: Optional[StringList] = None
     family: Optional[StringList] = None
-    exchange: Optional[StringList] = None
-
-
-SearchOptions = Union[EquitiesSearchOptions, ETFsSearchOptions]
 
 
 app = FastAPI(description="Portfolio Analysis API", version="1.0.0", default_response_class=ORJSONResponse)
@@ -161,54 +161,69 @@ async def get_current_price_and_time(symbol: str):
 async def health_check():
     return {"status": "ok"}
 
-
 @app.post("/instruments/search", response_model=Dict[str, Any])
 async def search_instruments(search_values: SearchOptions):
     instrument_type = search_values.instrument_type
     search_values.instrument_type = None
-    match instrument_type:
-        case "Equities":
-            return await search_equities(search_values)
-        case "ETFs":
-            return await search_etfs(search_values)
-        case _:
-            equities = await search_equities(search_values)
-            etfs = await search_etfs(search_values)
-            combined_data = {
-                "data": equities["data"] + etfs["data"],
-                "pageCount": equities["pageCount"] + etfs["pageCount"],
-                "options": {**equities["options"], **etfs["options"]},
-            }
-            return combined_data
+    if instrument_type == "Equities":
+        return search_instruments_helper(search_values, [EQUITIES])
+    elif instrument_type == "ETFs":
+        return search_instruments_helper(search_values, [ETFS])
+    else:
+        # Search both and merge results
+        return search_instruments_helper(search_values, [EQUITIES, ETFS])
 
 
-def search_instruments_helper(search_values, DB, instrument_type_label):
+def search_instruments_helper(search_values, DBs):
     req_json = search_values.model_dump(exclude_none=True)
     symbol = req_json.pop("symbol", "")
-    name = req_json.pop("name", "")
+    name = req_json.pop("name", "").lower()
     page = req_json.pop("page", None)
     page_size = req_json.pop("page_size", None)
-    options = {k: v.astype(str).tolist() for k, v in DB.show_options().items()}
-    results = DB.select(**req_json)
-    results = results[results.index.str.contains(symbol) | results["name"].str.contains(name)]
-    results = json.loads(results.reset_index().to_json(orient="records"))
-    for item in results:
-        item["instrument_type"] = instrument_type_label
+
+    all_options = {}
+    all_exact = pd.DataFrame()
+    all_startswith = pd.DataFrame()
+    all_name_contains = pd.DataFrame()
+
+    for DB in DBs:
+        instrument_type = INSTRUMENT_NAME_MAPPING[DB.__class__.__name__]
+        options = {k: v.astype(str).tolist() for k, v in DB.show_options().items()}
+        for k, v in options.items():
+            all_options[k] = all_options.get(k, []) + v
+        db_options = {k: v for k, v in req_json.items() if k in options.keys()}
+        results = DB.select(**db_options)
+        results = results.copy()
+        results.index = results.index.astype(str)
+        results["name"] = results["name"].astype(str)
+        results["instrument_type"] = instrument_type
+
+        exact_match = results[results.index == symbol]
+        startswith_match = results[(results.index.str.startswith(symbol)) & (results.index != symbol)]
+        already_matched = set(exact_match.index).union(startswith_match.index)
+        name_contains_match = results[
+            (~results.index.isin(already_matched)) &
+            (results["name"].str.lower().str.contains(name))
+        ]
+
+        all_exact = pd.concat([all_exact, exact_match])
+        all_startswith = pd.concat([all_startswith, startswith_match])
+        all_name_contains = pd.concat([all_name_contains, name_contains_match])
+
+    all_exact = all_exact.sort_index()
+    all_startswith = all_startswith.sort_index()
+    all_name_contains = all_name_contains.sort_index()
+    all_results = pd.concat([all_exact, all_startswith, all_name_contains])
+
+    all_results_json = json.loads(all_results.reset_index().to_json(orient="records"))
+
     if page_size is None or page is None:
-        return {"data": results, "pageCount": 1, "options": options}
+        return {"data": all_results_json, "pageCount": 1, "options": all_options}
     return {
-        "data": results[(page - 1) * page_size : page * page_size],
-        "pageCount": (1 + len(results) // page_size),
-        "options": options,
+        "data": all_results_json[(page - 1) * page_size : page * page_size],
+        "pageCount": (1 + len(all_results_json) // page_size),
+        "options": all_options,
     }
-
-
-async def search_equities(search_values: EquitiesSearchOptions):
-    return search_instruments_helper(search_values, EQUITIES, "Equity")
-
-
-async def search_etfs(search_values: ETFsSearchOptions):
-    return search_instruments_helper(search_values, ETFS, "ETF")
 
 
 async def get_data_from_toolkit(settings: OptimisationSettings):
