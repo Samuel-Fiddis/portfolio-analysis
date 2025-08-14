@@ -32,7 +32,8 @@ export const AnalysisResults = ({
       {optimisationData && (
         <DrawdownChart
           drawdownData={optimisationData?.optimisation_results[gamma]?.drawdown || []}
-          maxDrawdown={optimisationData?.optimisation_results[gamma]?.max_drawdown} />
+          maxDrawdown={optimisationData?.optimisation_results[gamma]?.max_drawdown}
+          yourPortfolio={yourPortfolio} />
       )}
       {optimisationData && (
         <div className="flex flex-row w-full gap-8 items-stretch justify-center">

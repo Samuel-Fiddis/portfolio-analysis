@@ -18,7 +18,11 @@ import {
   usePortfolioOptimisation,
 } from "./custom-hooks";
 import {
+  calculateAllocationPercentage,
+  calculateTotalPortfolioValue,
   getArithmeticPortfolioReturn,
+  getMaxDrawdownDetails,
+  getPortfolioDrawdownSeries,
   getPortfolioGeometricReturn,
   getPortfoliosSharpeRatio,
   getPortfolioStandardDeviation,
@@ -26,56 +30,20 @@ import {
 import { Optimisation } from "./optimisation";
 import { AnalysisResults } from "./AnalysisResults";
 
-const PERCENTAGE_MULTIPLIER = 100;
+export const PERCENTAGE_MULTIPLIER = 100;
 const MIN_ALLOCATION_VALUE = 0.0000000001;
 const ISO_DATE_LENGTH = 10;
 
-const calculateTotalPortfolioValue = (
-  portfolio: PortfolioItem[],
-  quotes: Record<string, any> | undefined,
-  currencyRates: Record<string, PricePoint> | undefined
-): number => {
-  if (!portfolio?.length || !quotes || !currencyRates) return 0;
-
-  return portfolio.reduce((sum, item) => {
-    try {
-      const quote = quotes[item.symbol];
-      const currencyRate = currencyRates[item.currency].price;
-
-      if (!quote || typeof quote.price !== "number" || !currencyRate)
-        return sum;
-      if (item.currentShares < 0) return sum;
-
-      return sum + quote.price * item.currentShares * currencyRate;
-    } catch (error) {
-      console.warn(`Error calculating value for ${item.symbol}:`, error);
-      return sum;
-    }
-  }, 0);
-};
-
-const calculateItemValue = (item: PortfolioItem, quote: any): number => {
+const calculateItemValue = (item: PortfolioItem, quote: PricePoint): number => {
   if (!item || !quote || typeof quote.price !== "number") return 0;
   if (item.currentShares < 0) return 0;
 
   return quote.price * item.currentShares;
 };
 
-const calculateAllocationPercentage = (
-  itemValue: number,
-  currencyRate: number | undefined,
-  totalValue: number
-): number => {
-  if (!currencyRate || totalValue <= 0 || itemValue < 0) return 0;
-  if (!isFinite(itemValue) || !isFinite(totalValue) || !isFinite(currencyRate))
-    return 0;
-
-  return ((itemValue * currencyRate) / totalValue) * PERCENTAGE_MULTIPLIER;
-};
-
 const attachQuotesToPortfolio = (
   portfolio: PortfolioItem[],
-  quotes: Record<string, any> | undefined,
+  quotes: Record<string, PricePoint> | undefined,
   currencyRates: Record<string, PricePoint> | undefined
 ) => {
   if (!portfolio?.length) return [];
@@ -114,13 +82,18 @@ const attachQuotesToPortfolio = (
 
 const createYourPortfolioResult = (
   optimisationData: OptimisedValues | undefined,
-  portfolioWithQuotes: any[],
+  portfolioWithQuotes: PortfolioItem[],
 ): OptimisationResult | null => {
   if (!optimisationData?.stock_stats || !portfolioWithQuotes?.length)
     return null;
 
   try {
     const { stock_stats, historical_data, time_period } = optimisationData;
+
+    const drawdownSeries = getPortfolioDrawdownSeries(portfolioWithQuotes, historical_data);
+    const maxDrawdownDetails = getMaxDrawdownDetails(drawdownSeries);
+
+    console.log("maxDrawdownDetails", maxDrawdownDetails)
 
     return {
       arithmetic_mean: stock_stats.avg_return
@@ -143,13 +116,8 @@ const createYourPortfolioResult = (
         symbol: item.symbol || "",
         value_proportion: item.yourAllocation || 0,
       })),
-      drawdown: [],
-      max_drawdown: {
-        percent: 0,
-        start_date: "",
-        end_date: "",
-        bottom_date: "",
-      }
+      drawdown: drawdownSeries,
+      max_drawdown: maxDrawdownDetails,
     };
   } catch (error) {
     console.warn("Error creating portfolio result:", error);
@@ -158,7 +126,7 @@ const createYourPortfolioResult = (
 };
 
 const attachOptimisationToPortfolio = (
-  portfolioWithQuotes: any[],
+  portfolioWithQuotes: PortfolioItem[],
   optimisationResults: OptimisationResult[],
   gamma: number
 ) => {
@@ -247,11 +215,8 @@ function MainApp() {
     useState<OptimisationSettings>(DEFAULT_OPTIMISATION_SETTINGS);
   const [gamma, setGamma] = useState<number>(0);
 
-  const symbols = useMemo(() => extractUniqueSymbols(portfolio), [portfolio]);
-  const currencies = useMemo(
-    () => extractUniqueCurrencies(portfolio),
-    [portfolio]
-  );
+  const symbols = extractUniqueSymbols(portfolio);
+  const currencies = extractUniqueCurrencies(portfolio);
   const { data: quotes } = useCurrentPrice(symbols);
   const { data: currencyRates } = useCurrencyConversion(currencies);
 
