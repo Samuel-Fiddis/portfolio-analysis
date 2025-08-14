@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import PortfolioDataTable from "./portfolio";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { OptimisationSlider } from "./optimisation-slider";
 import {
   DEFAULT_OPTIMISATION_SETTINGS,
   OptimisationResult,
@@ -18,16 +17,14 @@ import {
   useCurrencyConversion,
   usePortfolioOptimisation,
 } from "./custom-hooks";
-import EfficiencyFrontierChart from "./efficiency-frontier-chart";
 import {
   getArithmeticPortfolioReturn,
   getPortfolioGeometricReturn,
+  getPortfoliosSharpeRatio,
   getPortfolioStandardDeviation,
 } from "./analysis-functions";
 import { Optimisation } from "./optimisation";
-import { CorrelationHeatmap } from "./correlation-heatmap";
-import AllocationsBarChart from "./allocations-bar-chart";
-import { DrawdownChart } from "./drawdown-chart";
+import { AnalysisResults } from "./AnalysisResults";
 
 const PERCENTAGE_MULTIPLIER = 100;
 const MIN_ALLOCATION_VALUE = 0.0000000001;
@@ -124,7 +121,6 @@ const createYourPortfolioResult = (
 
   try {
     const { stock_stats, historical_data, time_period } = optimisationData;
-    console.log(optimisationData);
 
     return {
       arithmetic_mean: stock_stats.avg_return
@@ -163,7 +159,7 @@ const createYourPortfolioResult = (
 
 const attachOptimisationToPortfolio = (
   portfolioWithQuotes: any[],
-  optimisationResults: any[],
+  optimisationResults: OptimisationResult[],
   gamma: number
 ) => {
   if (!portfolioWithQuotes?.length || !optimisationResults?.length)
@@ -232,58 +228,6 @@ const extractUniqueCurrencies = (portfolio: PortfolioItem[]): string[] => {
   );
   return Array.from(uniqueCurrencies);
 };
-
-// Analysis Results Component
-const AnalysisResults = ({
-  gamma,
-  setGamma,
-  yourPortfolio,
-  optimisationData,
-}: {
-  gamma: number;
-  setGamma: (gamma: number) => void;
-  yourPortfolio: OptimisationResult | null;
-  optimisationData: any;
-}) => (
-  <>
-    <OptimisationSlider
-      gamma={gamma}
-      setGamma={setGamma}
-      optimisationResults={optimisationData?.optimisation_results || []}
-    />
-    <h2 className="text-2xl font-bold mb-6 text-center">
-      Analysis and Optimisation Results
-    </h2>
-    <div className="flex flex-col w-full gap-8 items-center justify-center">
-      <EfficiencyFrontierChart
-        optimisedPortfolios={optimisationData?.optimisation_results || []}
-        selectedPortfolio={optimisationData?.optimisation_results[gamma]}
-        yourPortfolio={yourPortfolio}
-      />
-      {optimisationData && (
-        <DrawdownChart
-          drawdownData={optimisationData?.optimisation_results[gamma]?.drawdown || []}
-          maxDrawdown={optimisationData?.optimisation_results[gamma]?.max_drawdown}
-        />
-      )}
-      {optimisationData && (
-        <div className="flex flex-row w-full gap-8 items-stretch justify-center">
-          <div className="flex-1">
-            <AllocationsBarChart
-              optimisedAllocation={optimisationData?.optimisation_results[gamma]?.weights}
-              yourAllocation={yourPortfolio?.weights}
-            />
-          </div>
-          <div className="flex-1">
-            <CorrelationHeatmap
-              corrMatrix={optimisationData?.stock_stats.corr_matrix}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  </>
-);
 
 const queryClient = new QueryClient();
 
@@ -365,6 +309,10 @@ function MainApp() {
     [portfolioWithQuotes, optimisationResults, gamma]
   );
 
+  const enhancedOptimisationData: OptimisedValues = useMemo(() => {
+    return getPortfoliosSharpeRatio(optimisationData, optimisationSettings.risklessBorrowingRate) ?? {} as OptimisedValues;
+  }, [optimisationData, optimisationSettings.risklessBorrowingRate]);
+
   // Attach analysis stats to each item
   const portfolioWithAnalysis = useMemo(
     () =>
@@ -372,7 +320,7 @@ function MainApp() {
     [portfolioWithOptimisation, optimisationData]
   );
 
-  const shouldShowAnalysis = !isOptimising && optimisationResults.length > 0;
+  const shouldShowAnalysis = !isOptimising && enhancedOptimisationData?.optimisation_results?.length > 0;
   const shouldShowOptimisation = portfolio.length > 1;
 
   return (
@@ -386,14 +334,16 @@ function MainApp() {
           setPortfolio={setPortfolio}
         />
         {shouldShowOptimisation && optimisationComponent}
-        {shouldShowAnalysis && (
+      {shouldShowAnalysis && (
+        <div className="mt-8 w-full flex justify-center">
           <AnalysisResults
             gamma={gamma}
             setGamma={setGamma}
             yourPortfolio={yourPortfolio}
-            optimisationData={optimisationData}
+            optimisationData={enhancedOptimisationData}
           />
-        )}
+        </div>
+      )}
       </div>
     </main>
   );

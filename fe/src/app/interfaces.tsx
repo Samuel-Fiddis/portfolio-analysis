@@ -110,7 +110,7 @@ export interface PricePoint {
 export type PeriodType = "yearly" | "monthly" | "daily";
 
 export interface OptimisationSettings {
-  // risklessBorrowingRate: number;
+  risklessBorrowingRate: number;
   // risklessLendingRate: number;
   timePeriod: PeriodType;
   startTime: Date;
@@ -127,13 +127,13 @@ type OptimisationSettingDescription = {
 };
 
 export const OPTIMISATION_SETTINGS_DESCRIPTIONS: Record<keyof OptimisationSettings, OptimisationSettingDescription> = {
-  // risklessBorrowingRate: {
-  //   title: "Riskless Borrowing Rate",
-  //   description: "The riskless borrowing rate is the interest rate at which you can borrow money without taking on any risk.",
-  //   type: "number",
-  //   step: "0.01",
-  //   min: "0",
-  // },
+  risklessBorrowingRate: {
+    title: "Riskless Borrowing Rate",
+    description: "The riskless borrowing rate is the interest rate at which you can borrow money without taking on any risk.",
+    type: "number",
+    step: "0.01",
+    min: "0",
+  },
   // risklessLendingRate: {
   //   title: "Riskless Lending Rate",
   //   description: "The riskless lending rate is the interest rate at which you can lend money without taking on any risk.",
@@ -163,7 +163,7 @@ export const OPTIMISATION_SETTINGS_DESCRIPTIONS: Record<keyof OptimisationSettin
 }
 
 export const DEFAULT_OPTIMISATION_SETTINGS: OptimisationSettings = {
-  // risklessBorrowingRate: 5.0,
+  risklessBorrowingRate: 5.0,
   // risklessLendingRate: 3.5,
   timePeriod: "monthly",
   startTime: new Date(new Date().setFullYear(new Date().getFullYear() - 5, new Date().getMonth(), new Date().getDate())),
@@ -180,6 +180,7 @@ export interface QuoteEntry {
   historical_data: HistoricalDataPoint[];
   std_dev: number;
   avg_return: number;
+  corr_matrix: Record<string, Record<string, number>>;
 }
 
 export interface QuoteData {
@@ -200,5 +201,4 @@ export interface InstrumentSearchPayload {
   page_size?: string | null;
   page?: string | null;
   options?: Record<string, string[]>;
-
 }

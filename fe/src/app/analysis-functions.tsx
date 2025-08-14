@@ -1,5 +1,5 @@
-import { PortfolioItem } from "./interfaces";
-import { HistoricalDataPoint, PeriodType } from "./interfaces";
+import { OptimisedValues, PortfolioItem } from "./interfaces";
+import { HistoricalDataPoint, PeriodType, OptimisationResult } from "./interfaces";
 
 function adjustReturnForPeriod(
   returns: number,
@@ -88,4 +88,43 @@ export function getPortfolioStandardDeviation(
     }
   }
   return Math.sqrt(portStdDev);
+}
+
+function getSharpeRatio(
+  avg: number,
+  stdDev: number,
+  risklessBorrowingRate: number,
+) {
+  return (avg - risklessBorrowingRate) / stdDev;
+}
+
+export function getPortfoliosSharpeRatio(
+  optimisationData: OptimisedValues | undefined,
+  risklessBorrowingRate: number
+): OptimisedValues | undefined {
+  if (!optimisationData) return undefined;
+
+  return {
+    ...optimisationData,
+    optimisation_results: optimisationData?.optimisation_results.map(result => ({
+      ...result,
+      sharpe_ratio_annualised: getSharpeRatio(
+        result.geometric_mean,
+        result.std_dev,
+        risklessBorrowingRate
+      ),
+    })),
+  };
+}
+
+export function getMaxSharpeRatioGamma(optimisationResults: OptimisationResult[]): number | undefined {
+  let maxIndex: number | undefined = undefined;
+  let maxSharpe = -Infinity;
+  optimisationResults.forEach((result, idx) => {
+    if (typeof result.sharpe_ratio_annualised === "number" && result.sharpe_ratio_annualised > maxSharpe) {
+      maxSharpe = result.sharpe_ratio_annualised;
+      maxIndex = idx;
+    }
+  });
+  return maxIndex;
 }

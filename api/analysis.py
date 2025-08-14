@@ -159,12 +159,13 @@ def get_portfolio_standard_deviation(portfolio, std_dev, corr_matrix):
     return np.sqrt(port_std_dev)
 
 
-def calculate_drawdown_statistics(cumulative_returns):
+def calculate_drawdown_statistics(returns):
     """
     Helper function to calculate drawdown details from cumulative returns.
-    :param cumulative_returns: Series of cumulative returns.
+    :param returns: Series of stock/portfolio returns.
     :return: Dictionary containing drawdown details.
     """
+    cumulative_returns = (1 + returns / 100).cumprod()
     # Calculate running maximum
     running_max = cumulative_returns.expanding().max()
     # Calculate drawdown
@@ -209,10 +210,8 @@ def get_portfolio_drawdown_percentage(df, weights):
 
     # Calculate portfolio returns
     portfolio_returns = (pivot_data * weights).sum(axis=1)
-    # Calculate cumulative returns
-    cumulative_returns = (1 + portfolio_returns / 100).cumprod()
 
-    return calculate_drawdown_statistics(cumulative_returns)
+    return calculate_drawdown_statistics(portfolio_returns)
 
 
 def get_symbols_drawdown_percentage(df):
@@ -226,7 +225,6 @@ def get_symbols_drawdown_percentage(df):
     symbol_drawdowns = {}
     for symbol in pivot_data.columns:
         returns = pivot_data[symbol].dropna()
-        cumulative_returns = (1 + returns / 100).cumprod()
-        symbol_drawdowns[symbol] = calculate_drawdown_statistics(cumulative_returns)
+        symbol_drawdowns[symbol] = calculate_drawdown_statistics(returns)
 
     return symbol_drawdowns

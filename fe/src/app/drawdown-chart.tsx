@@ -16,6 +16,7 @@ export const DrawdownChart = ({
   drawdownData: DrawdownData[];
   maxDrawdown: DrawdownDetails;
 }) => {
+  console.log(drawdownData);
   const data = drawdownData.map((item) => ({
     trade_date: new Date(
       String(item.trade_date).length === 13
@@ -84,15 +85,15 @@ export const DrawdownChart = ({
             </div>
             <div>
               <span className="font-semibold">Start Date:</span>{" "}
-              {maxDrawdown?.start_date.slice(0, 10) || "N/A"}
+              {maxDrawdown?.start_date?.slice(0, 10) || "Prior start"}
             </div>
             <div>
               <span className="font-semibold">Bottom Date:</span>{" "}
-              {maxDrawdown?.bottom_date.slice(0, 10) || "N/A"}
+              {maxDrawdown?.bottom_date?.slice(0, 10) || "N/A"}
             </div>
             <div>
               <span className="font-semibold">End Date:</span>{" "}
-              {maxDrawdown?.end_date.slice(0, 10) || "N/A"}
+              {maxDrawdown?.end_date?.slice(0, 10) || "Ongoing"}
             </div>
           </div>
         </div>

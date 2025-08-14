@@ -8,7 +8,8 @@ from analysis import (
     adjust_std_dev_for_period,
     get_averages,
     get_covariance_matrix,
-    get_geometric_mean,    get_portfolio_drawdown_percentage
+    get_geometric_mean,
+    get_portfolio_drawdown_percentage
 )
 
 

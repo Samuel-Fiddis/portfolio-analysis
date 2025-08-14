@@ -107,7 +107,7 @@ export default function PortfolioDataTable({
     <div className="data-table-container">
       <DataTable
         table={table}
-        noValuesString="Add at least 2 assets to your portfolio for analysis! 😊"
+        noValuesString="Add at least 2 assets to your portfolio for analysis"
       >
         <DataTableToolbar table={table} childrenFarLeft={advInstrumentSearch}>
           {toolBarChildren}

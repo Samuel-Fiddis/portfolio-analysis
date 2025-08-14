@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import json
-import numpy as np
 import pandas as pd
+import math
 
 import financedatabase as fd
 from financetoolkit import Toolkit
@@ -40,36 +40,43 @@ DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
 API_KEY = os.getenv("FMP_API_KEY")
 
-engine = None
 
-while engine is None:
-    try:
-        engine = create_engine(
-            f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-        )
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1;"))
-        log.info("Database connection established successfully")
-    except Exception as e:
-        log.error(f"Failed to connect to the database: {e}")
-        engine = None
-        sleep(5)
+def initialize_engine(retries=10, delay=5):
+    for attempt in range(retries):
+        try:
+            engine = create_engine(
+                f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+            )
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1;"))
+            log.info("Database connection established successfully")
+            return engine
+        except Exception as e:
+            log.error(f"Failed to connect to the database (attempt {attempt + 1}): {e}")
+            sleep(delay)
+    raise RuntimeError(
+        "Could not establish database connection after multiple attempts."
+    )
 
-EQUITIES = None
-ETFS = None
 
-while EQUITIES is None or ETFS is None:
+def initialize_financial_data():
     log.info("Initializing financial data...")
     try:
-        if EQUITIES is None:
-            EQUITIES = fd.Equities()
-        if ETFS is None:
-            ETFS = fd.ETFs()
+        equities = fd.Equities()
+        etfs = fd.ETFs()
         log.info("Initialised financial data")
+        return equities, etfs
     except Exception as e:
         log.error(f"Failed to initialize financial data: {e}")
-        EQUITIES = None
-        ETFS = None
+        return None, None
+
+
+engine = initialize_engine()
+
+EQUITIES, ETFS = None, None
+while EQUITIES is None or ETFS is None:
+    EQUITIES, ETFS = initialize_financial_data()
+    if EQUITIES is None or ETFS is None:
         sleep(1)
 
 INSTRUMENT_NAME_MAPPING = {
@@ -114,7 +121,11 @@ class SearchOptions(BaseModel):
     family: Optional[StringList] = None
 
 
-app = FastAPI(description="Portfolio Analysis API", version="1.0.0", default_response_class=ORJSONResponse)
+app = FastAPI(
+    description="Portfolio Analysis API",
+    version="1.0.0",
+    default_response_class=ORJSONResponse,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -123,17 +134,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
-
-
-def convert_ndarrays(obj):
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, dict):
-        return {k: convert_ndarrays(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_ndarrays(i) for i in obj]
-    else:
-        return obj
 
 
 async def get_current_price_and_time(symbol: str):
@@ -160,6 +160,7 @@ async def get_current_price_and_time(symbol: str):
 @app.get("/health", response_model=Dict[str, str])
 async def health_check():
     return {"status": "ok"}
+
 
 @app.post("/instruments/search", response_model=Dict[str, Any])
 async def search_instruments(search_values: SearchOptions):
@@ -193,7 +194,6 @@ def search_instruments_helper(search_values, DBs):
             all_options[k] = all_options.get(k, []) + v
         db_options = {k: v for k, v in req_json.items() if k in options.keys()}
         results = DB.select(**db_options)
-        results = results.copy()
         results.index = results.index.astype(str)
         results["name"] = results["name"].astype(str)
         results["instrument_type"] = instrument_type
@@ -221,7 +221,7 @@ def search_instruments_helper(search_values, DBs):
         return {"data": all_results_json, "pageCount": 1, "options": all_options}
     return {
         "data": all_results_json[(page - 1) * page_size : page * page_size],
-        "pageCount": (1 + len(all_results_json) // page_size),
+        "pageCount": math.ceil(len(all_results_json) / page_size),
         "options": all_options,
     }
 
@@ -239,17 +239,16 @@ async def get_data_from_toolkit(settings: OptimisationSettings):
     ]
     data = process_historical_data(data)
     data["trade_date"] = data["trade_date"].dt.strftime("%Y-%m-%d")
-    for symbol in settings.portfolio:
+    for item in settings.portfolio:
         missing_dates = get_missing_dates(
-            data,
-            symbol["symbol"],
-            symbol["exchange"],
+            data[data["symbol"] == item["symbol"]],
+            item["exchange"],
             settings.time_period,
             settings.start_time,
             settings.end_time,
         )
         if len(missing_dates) > 0:
-            set_exchange_holidays(symbol["exchange"], missing_dates)
+            set_exchange_holidays(item["exchange"], missing_dates)
     insert_data_into_db(data, settings.time_period)
     return data
 
@@ -287,6 +286,9 @@ async def analyse_instruments(settings: OptimisationSettings):
     ret = get_averages(data, input_period=settings.time_period, output_period="yearly")
 
     return {
+        "historical_data": data.groupby("symbol")[
+            ["trade_date", "close_price", "change_percent"]
+        ].apply(lambda x: x.to_dict(orient="records")),
         "std_dev": std.to_dict(),
         "avg_return": ret.to_dict(),
         "corr_matrix": corr_matrix.to_dict(),
@@ -297,15 +299,13 @@ def find_missing_portfolio_items(
     data: pd.DataFrame, settings: OptimisationSettings
 ) -> List[Dict[str, Any]]:
     """Return portfolio items missing from the data (by symbol or missing dates)."""
+    existing_symbols = set(data["symbol"].unique())
     missing_portfolio = [
-        item
-        for item in settings.portfolio
-        if item["symbol"] not in data["symbol"].unique()
+        item for item in settings.portfolio if item["symbol"] not in existing_symbols
     ]
     for item in settings.portfolio:
         missing_dates = get_missing_dates(
-            data,
-            item["symbol"],
+            data[data["symbol"] == item["symbol"]],
             item["exchange"],
             settings.time_period,
             settings.start_time,
@@ -357,8 +357,7 @@ async def optimise_portfolio_route(settings: OptimisationSettings):
         "time_period": settings.time_period,
         "historical_data": data.groupby("symbol")[
             ["trade_date", "close_price", "change_percent"]
-        ]
-        .apply(lambda x: x.to_dict(orient="records")),
+        ].apply(lambda x: x.to_dict(orient="records")),
         "stock_stats": {
             "std_dev": std,
             "avg_return": ret,
@@ -380,7 +379,11 @@ async def get_usd_conversion_rates(currencies: List[str]):
             continue
         ticker = f"{currency.upper()}USD=X"
         price, timestamp = await get_current_price_and_time(ticker)
-        rates[currency.upper()] = {"price": price, "timestamp": timestamp}
+        if price is not None:
+            rates[currency.upper()] = {"price": price, "timestamp": timestamp}
+        else:
+            log.warning(f"Could not retrieve conversion rate for currency: {currency}")
+
     return rates
 
 
@@ -443,14 +446,14 @@ def read_data_from_db(settings: OptimisationSettings) -> pd.DataFrame:
 
 def get_missing_dates(
     data: pd.DataFrame,
-    symbol: str,
     exchange: str,
     time_period: str,
     start_time: str,
     end_time: str,
 ) -> List[str]:
+    """Checks for missing dates in the database"""
     data_dates = pd.to_datetime(
-        data[data["symbol"] == symbol]["trade_date"]
+        data["trade_date"]
     ).dt.date.to_list()
     if time_period == "daily":
         holidays = get_exchange_holidays(exchange, start_time, end_time)
