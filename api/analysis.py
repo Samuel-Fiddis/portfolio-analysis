@@ -53,8 +53,10 @@ def get_porfolio_geometric_mean(df, weights, input_period=None, output_period=No
     ).apply(
         lambda x: 1 + (x / 100)
     )  # Convert to decimal
+    data.fillna(1.0, inplace=True) # Fix for when symbols on different exchanges have no data for a date e.g. exchange holiday
+    portfolio_change_percent = (data * weights).sum(axis=1)
     time_periods = len(data.index)
-    geo_mean = ((data * weights).sum(axis=1).prod() ** (1 / time_periods) - 1) * 100 # Convert back to percentage
+    geo_mean = (portfolio_change_percent.prod() ** (1 / time_periods) - 1) * 100 # Convert back to percentage
     return adjust_averages_for_period(geo_mean, input_period, output_period)
 
 
