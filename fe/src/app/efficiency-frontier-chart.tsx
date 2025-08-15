@@ -8,7 +8,7 @@ import {
   Scatter,
   Tooltip,
 } from "recharts";
-import { OptimisationResult } from "./interfaces";
+import { PortfolioAnalysisResult } from "./interfaces";
 
 const xBoarderBuffer = 0.2;
 const yBoarderBuffer = 0.2;
@@ -18,9 +18,9 @@ export default function EfficiencyFrontierChart({
   yourPortfolio,
   selectedPortfolio,
 }: {
-  optimisedPortfolios: OptimisationResult[];
-  selectedPortfolio?: OptimisationResult;
-  yourPortfolio?: OptimisationResult | null;
+  optimisedPortfolios: PortfolioAnalysisResult[];
+  selectedPortfolio?: PortfolioAnalysisResult;
+  yourPortfolio?: PortfolioAnalysisResult | null;
 }) {
   const stdDevs = optimisedPortfolios.map((p) => p.std_dev);
   const returns = optimisedPortfolios.map((p) => p.geometric_mean);
@@ -93,15 +93,17 @@ export default function EfficiencyFrontierChart({
             isAnimationActive={false}
           />
         )}
-        {yourPortfolio && yourPortfolio.geometric_mean && yourPortfolio.std_dev && (
-          <Scatter
-            name="Your Portfolio"
-            data={[yourPortfolio]}
-            fill="#8884d8"
-            stroke="#001f3f"
-            shape="circle"
-          />
-        )}
+        {yourPortfolio &&
+          yourPortfolio.geometric_mean &&
+          yourPortfolio.std_dev && (
+            <Scatter
+              name="Your Portfolio"
+              data={[yourPortfolio]}
+              fill="#8884d8"
+              stroke="#001f3f"
+              shape="circle"
+            />
+          )}
         <Tooltip />
         <Legend
           verticalAlign="top"

@@ -6,11 +6,15 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   DEFAULT_OPTIMISATION_SETTINGS,
-  OptimisationResult,
+  PortfolioAnalysisResult,
   OptimisationSettings,
   OptimisedValues,
   PortfolioItem,
   PricePoint,
+  PortfolioWeight,
+  HistoricalData,
+  StockStats,
+  PeriodType,
 } from "./interfaces";
 import {
   useCurrentPrice,
@@ -20,7 +24,7 @@ import {
 import {
   calculateAllocationPercentage,
   calculateTotalPortfolioValue,
-  getArithmeticPortfolioReturn,
+  getPortfolioArithmeticReturn,
   getMaxDrawdownDetails,
   getPortfolioDrawdownSeries,
   getPortfolioGeometricReturn,
@@ -31,7 +35,6 @@ import { Optimisation } from "./optimisation";
 import { AnalysisResults } from "./AnalysisResults";
 
 export const PERCENTAGE_MULTIPLIER = 100;
-const MIN_ALLOCATION_VALUE = 0.0000000001;
 const ISO_DATE_LENGTH = 10;
 
 const calculateItemValue = (item: PortfolioItem, quote: PricePoint): number => {
@@ -80,66 +83,16 @@ const attachQuotesToPortfolio = (
   });
 };
 
-const createYourPortfolioResult = (
-  optimisationData: OptimisedValues | undefined,
-  portfolioWithQuotes: PortfolioItem[],
-): OptimisationResult | null => {
-  if (!optimisationData?.stock_stats || !portfolioWithQuotes?.length)
-    return null;
-
-  try {
-    const { stock_stats, historical_data, time_period } = optimisationData;
-
-    const drawdownSeries = getPortfolioDrawdownSeries(portfolioWithQuotes, historical_data);
-    const maxDrawdownDetails = getMaxDrawdownDetails(drawdownSeries);
-
-    console.log("maxDrawdownDetails", maxDrawdownDetails)
-
-    return {
-      arithmetic_mean: stock_stats.avg_return
-        ? getArithmeticPortfolioReturn(
-            portfolioWithQuotes,
-            stock_stats.avg_return
-          )
-        : 0,
-      geometric_mean: historical_data
-        ? getPortfolioGeometricReturn(portfolioWithQuotes, historical_data, time_period)
-        : 0,
-      std_dev: stock_stats.std_dev
-        ? getPortfolioStandardDeviation(
-            portfolioWithQuotes,
-            stock_stats.std_dev,
-            stock_stats.corr_matrix
-          )
-        : 0,
-      weights: portfolioWithQuotes.map((item) => ({
-        symbol: item.symbol || "",
-        value_proportion: item.yourAllocation || 0,
-      })),
-      drawdown: drawdownSeries,
-      max_drawdown: maxDrawdownDetails,
-    };
-  } catch (error) {
-    console.warn("Error creating portfolio result:", error);
-    return null;
-  }
-};
-
 const attachOptimisationToPortfolio = (
   portfolioWithQuotes: PortfolioItem[],
-  optimisationResults: OptimisationResult[],
+  optimisationResults: PortfolioAnalysisResult[],
   gamma: number
 ) => {
   if (!portfolioWithQuotes?.length || !optimisationResults?.length)
     return portfolioWithQuotes || [];
 
   try {
-    const safeGamma = Math.max(
-      0,
-      Math.min(gamma, optimisationResults.length - 1)
-    );
-    const selectedResult =
-      optimisationResults[safeGamma] ?? optimisationResults[0];
+    const selectedResult = optimisationResults[gamma];
 
     if (!selectedResult?.weights) return portfolioWithQuotes;
 
@@ -150,8 +103,7 @@ const attachOptimisationToPortfolio = (
     return portfolioWithQuotes.map((item) => ({
       ...item,
       optimisedAllocation:
-        Math.max(weightsMap[item.symbol] || 0, MIN_ALLOCATION_VALUE) *
-        PERCENTAGE_MULTIPLIER,
+        Math.max(weightsMap[item.symbol] || 0, 0) * PERCENTAGE_MULTIPLIER,
     }));
   } catch (error) {
     console.warn("Error attaching optimisation to portfolio:", error);
@@ -160,8 +112,8 @@ const attachOptimisationToPortfolio = (
 };
 
 const attachAnalysisToPortfolio = (
-  portfolioWithOptimisation: any[],
-  optimisationData: any
+  portfolioWithOptimisation: PortfolioItem[],
+  optimisationData: OptimisedValues | undefined
 ) => {
   if (!portfolioWithOptimisation?.length) return [];
 
@@ -177,6 +129,58 @@ const attachAnalysisToPortfolio = (
   } catch (error) {
     console.warn("Error attaching analysis to portfolio:", error);
     return portfolioWithOptimisation;
+  }
+};
+
+const generatePortfolioAnalysis = (
+  historical_data: HistoricalData | undefined,
+  stock_stats: StockStats | undefined,
+  time_period: PeriodType | undefined,
+  portfolio: PortfolioItem[] | undefined
+): PortfolioAnalysisResult | null => {
+  if (!historical_data || !stock_stats || !time_period || !portfolio?.length)
+    return null;
+
+  try {
+    const weights: PortfolioWeight[] = portfolio
+      .filter(
+        (item) => item.yourAllocation !== undefined && item.yourAllocation !== 0
+      )
+      .map((item) => ({
+        symbol: item.symbol || "",
+        value_proportion: item.yourAllocation / 100.0,
+      }));
+
+    if (weights.length === 0) return null;
+
+    const arithmeticMean = getPortfolioArithmeticReturn(
+      weights,
+      stock_stats.avg_return
+    );
+    const geometricMean = getPortfolioGeometricReturn(
+      weights,
+      historical_data,
+      time_period
+    );
+    const stdDev = getPortfolioStandardDeviation(
+      weights,
+      stock_stats.std_dev,
+      stock_stats.corr_matrix
+    );
+    const drawdownSeries = getPortfolioDrawdownSeries(weights, historical_data);
+    const maxDrawdownDetails = getMaxDrawdownDetails(drawdownSeries);
+
+    return {
+      arithmetic_mean: arithmeticMean,
+      geometric_mean: geometricMean,
+      std_dev: stdDev,
+      weights: weights,
+      drawdown: drawdownSeries,
+      max_drawdown: maxDrawdownDetails,
+    };
+  } catch (error) {
+    console.warn("Error creating portfolio result:", error);
+    return null;
   }
 };
 
@@ -241,10 +245,15 @@ function MainApp() {
     optimisationSettings.endTime.toISOString().slice(0, ISO_DATE_LENGTH)
   );
 
+  const stockStats = optimisationData?.stock_stats;
+  const historicalData = optimisationData?.historical_data;
+  const timePeriod = optimisationData?.time_period;
+  const optimisationResults = optimisationData?.optimisation_results ?? [];
+
   const resetOptimisation = () => {
     refetchOptimisation();
     setGamma(0);
-  }
+  };
 
   // Create optimisation component
   const optimisationComponent = Optimisation({
@@ -254,14 +263,17 @@ function MainApp() {
     isOptimising,
   });
 
-
   // Calculate your portfolio metrics
   const yourPortfolio = useMemo(
-    () => createYourPortfolioResult(optimisationData, portfolioWithQuotes),
-    [optimisationData, portfolioWithQuotes]
+    () =>
+      generatePortfolioAnalysis(
+        historicalData,
+        stockStats,
+        timePeriod,
+        portfolioWithQuotes
+      ),
+    [historicalData, stockStats, timePeriod, portfolioWithQuotes]
   );
-
-  const optimisationResults = optimisationData?.optimisation_results ?? [];
 
   // Attach optimised allocation to each item
   const portfolioWithOptimisation = useMemo(
@@ -274,10 +286,6 @@ function MainApp() {
     [portfolioWithQuotes, optimisationResults, gamma]
   );
 
-  const enhancedOptimisationData: OptimisedValues = useMemo(() => {
-    return getPortfoliosSharpeRatio(optimisationData, optimisationSettings.risklessBorrowingRate) ?? {} as OptimisedValues;
-  }, [optimisationData, optimisationSettings.risklessBorrowingRate]);
-
   // Attach analysis stats to each item
   const portfolioWithAnalysis = useMemo(
     () =>
@@ -285,7 +293,17 @@ function MainApp() {
     [portfolioWithOptimisation, optimisationData]
   );
 
-  const shouldShowAnalysis = !isOptimising && enhancedOptimisationData?.optimisation_results?.length > 0;
+  const enhancedOptimisationData: OptimisedValues = useMemo(
+    () =>
+      getPortfoliosSharpeRatio(
+        optimisationData,
+        optimisationSettings.risklessBorrowingRate
+      ) ?? ({} as OptimisedValues),
+    [optimisationData, optimisationSettings.risklessBorrowingRate]
+  );
+
+  const shouldShowAnalysis =
+    !isOptimising && enhancedOptimisationData?.optimisation_results?.length > 0;
   const shouldShowOptimisation = portfolio.length > 1;
 
   return (
@@ -299,16 +317,16 @@ function MainApp() {
           setPortfolio={setPortfolio}
         />
         {shouldShowOptimisation && optimisationComponent}
-      {shouldShowAnalysis && (
-        <div className="mt-8 w-full flex justify-center">
-          <AnalysisResults
-            gamma={gamma}
-            setGamma={setGamma}
-            yourPortfolio={yourPortfolio}
-            optimisationData={enhancedOptimisationData}
-          />
-        </div>
-      )}
+        {shouldShowAnalysis && (
+          <div className="mt-8 w-full flex justify-center">
+            <AnalysisResults
+              gamma={gamma}
+              setGamma={setGamma}
+              yourPortfolio={yourPortfolio}
+              optimisationData={enhancedOptimisationData}
+            />
+          </div>
+        )}
       </div>
     </main>
   );

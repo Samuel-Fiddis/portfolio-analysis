@@ -8,16 +8,20 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { DrawdownData, DrawdownDetails, OptimisationResult } from "./interfaces";
+import {
+  DrawdownData,
+  DrawdownDetails,
+  PortfolioAnalysisResult,
+} from "./interfaces";
 
 export const DrawdownChart = ({
   drawdownData,
   maxDrawdown,
-  yourPortfolio
+  yourPortfolio,
 }: {
   drawdownData: DrawdownData[];
   maxDrawdown: DrawdownDetails;
-  yourPortfolio: OptimisationResult | null;
+  yourPortfolio: PortfolioAnalysisResult | null;
 }) => {
   const data = drawdownData.map((item) => ({
     trade_date: new Date(
@@ -42,11 +46,11 @@ export const DrawdownChart = ({
   }));
   const yourPortfolioMaxDrawdown = yourPortfolio?.max_drawdown;
 
+  console.log(yourPortfolio)
+
   return (
     <div className="overflow-x-auto">
-      <p className="text-center font-semibold">
-        Portfolio Drawdowns
-      </p>
+      <p className="text-center font-semibold">Portfolio Drawdowns</p>
       <div className="flex flex-row gap-8 items-start mb-4">
         <AreaChart
           width={1200}
@@ -82,7 +86,9 @@ export const DrawdownChart = ({
           <Legend
             verticalAlign="bottom"
             align="right"
-            formatter={(value) => <span style={{ color: "black" }}>{value}</span>}
+            formatter={(value) => (
+              <span style={{ color: "black" }}>{value}</span>
+            )}
           />
           <Tooltip />
           <Area
@@ -93,26 +99,30 @@ export const DrawdownChart = ({
             isAnimationActive={false}
             name="Selected Optimised Portfolio"
           />
-          {yourPortfolio && yourPortfolioDrawdown && yourPortfolioDrawdown?.length > 0 && (
-            <Area
-              type="linear"
-              dataKey="value"
-              data={yourPortfolioDrawdown}
-              stroke="#22c55e"
-              fill="#bbf7d0"
-              isAnimationActive={false}
-              name="Your Portfolio"
-            />
-          )}
+          {yourPortfolio &&
+            yourPortfolioDrawdown &&
+            yourPortfolioDrawdown?.length > 0 && (
+              <Area
+                type="linear"
+                dataKey="value"
+                data={yourPortfolioDrawdown}
+                stroke="#22c55e"
+                fill="#bbf7d0"
+                isAnimationActive={false}
+                name="Your Portfolio"
+              />
+            )}
         </AreaChart>
         <div className="flex flex-col gap-4">
           <div className="bg-white border border-gray-300 rounded p-4 min-w-[250px] shadow">
-            <h3 className="font-bold mb-2 text-center text-gray-700">Optimised Portfolio Max Drawdown</h3>
+            <h3 className="font-bold mb-2 text-center text-gray-700">
+              Optimised Portfolio Max Drawdown
+            </h3>
             <div className="text-sm text-gray-700 text-center">
               <div>
                 <span className="font-semibold">Percent:</span>{" "}
                 {maxDrawdown?.percent !== undefined
-                  ? `${(maxDrawdown.percent).toFixed(2)}%`
+                  ? `${maxDrawdown.percent.toFixed(2)}%`
                   : "N/A"}
               </div>
               <div>
@@ -131,17 +141,20 @@ export const DrawdownChart = ({
           </div>
           {yourPortfolioMaxDrawdown && yourPortfolioMaxDrawdown.percent < 0 && (
             <div className="bg-white border border-green-300 rounded p-4 min-w-[250px] shadow">
-              <h3 className="font-bold mb-2 text-center text-green-700">Your Portfolio Max Drawdown</h3>
+              <h3 className="font-bold mb-2 text-center text-green-700">
+                Your Portfolio Max Drawdown
+              </h3>
               <div className="text-sm text-gray-700 text-center">
                 <div>
                   <span className="font-semibold">Percent:</span>{" "}
                   {yourPortfolioMaxDrawdown?.percent !== undefined
-                    ? `${(yourPortfolioMaxDrawdown.percent).toFixed(2)}%`
+                    ? `${yourPortfolioMaxDrawdown.percent.toFixed(2)}%`
                     : "N/A"}
                 </div>
                 <div>
                   <span className="font-semibold">Start Date:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.start_date?.slice(0, 10) || "Prior start"}
+                  {yourPortfolioMaxDrawdown?.start_date?.slice(0, 10) ||
+                    "Prior start"}
                 </div>
                 <div>
                   <span className="font-semibold">Bottom Date:</span>{" "}
@@ -149,12 +162,13 @@ export const DrawdownChart = ({
                 </div>
                 <div>
                   <span className="font-semibold">End Date:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.end_date?.slice(0, 10) || "Ongoing"}
+                  {yourPortfolioMaxDrawdown?.end_date?.slice(0, 10) ||
+                    "Ongoing"}
                 </div>
               </div>
             </div>
           )}
-          </div>
+        </div>
       </div>
     </div>
   );

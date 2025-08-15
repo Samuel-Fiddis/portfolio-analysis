@@ -1,5 +1,11 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { OptimisedValues, PortfolioItem, PricePoint, InstrumentSearchPayload, InstrumentRow } from "./interfaces";
+import {
+  OptimisedValues,
+  PortfolioItem,
+  PricePoint,
+  InstrumentSearchPayload,
+  InstrumentRow,
+} from "./interfaces";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -9,14 +15,11 @@ export function useCurrentPrice(symbols: string[]) {
   }>({
     queryKey: ["currentPrice", symbols],
     queryFn: async () => {
-      const response = await fetch(
-        `${API_URL}/instruments/current_price`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(symbols),
-        }
-      );
+      const response = await fetch(`${API_URL}/instruments/current_price`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(symbols),
+      });
       if (!response.ok) throw new Error("Network response was not ok");
       return response.json();
     },
@@ -98,7 +101,6 @@ export function useAnalyseInstruments(
   });
 }
 
-
 export function useInstrumentSearchQuery(
   payload: InstrumentSearchPayload,
   queryKey: (string | unknown)[]
@@ -106,11 +108,10 @@ export function useInstrumentSearchQuery(
   data: InstrumentRow[];
   pageCount: number;
   options: Record<string, any>;
-}>  {
+}> {
   return useQuery({
     queryKey,
     queryFn: async () => {
-      console.log("Fetching instrument search data with payload:", payload);
       const response = await fetch(`${API_URL}/instruments/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -5,7 +5,7 @@ import {
   SliderTrack,
 } from "@radix-ui/react-slider";
 
-import { OptimisationResult } from "./interfaces";
+import { PortfolioAnalysisResult } from "./interfaces";
 import { getMaxSharpeRatioGamma } from "./analysis-functions";
 import { Button } from "@/components/ui/button";
 
@@ -16,7 +16,7 @@ export function OptimisationSlider({
 }: {
   gamma: number;
   setGamma: (v: number) => void;
-  optimisationResults: OptimisationResult[];
+  optimisationResults: PortfolioAnalysisResult[];
 }) {
   return (
     <div className="flex flex-col items-center">
@@ -32,7 +32,10 @@ export function OptimisationSlider({
         >
           ⚖️ Balance for Max Sharpe Ratio
         </Button>
-        <div className="flex items-center gap-2 w-full" style={{ marginTop: 2 }}>
+        <div
+          className="flex items-center gap-2 w-full"
+          style={{ marginTop: 2 }}
+        >
           <div className="flex flex-col items-center">
             <span role="img" aria-label="Low risk" style={{ fontSize: 24 }}>
               🪨

@@ -4,9 +4,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { InstrumentRow, InstrumentType } from "./interfaces";
 
 interface InstrumentSearchProps {
-  addToPortfolio: (
-    items: InstrumentRow[],
-  ) => void;
+  addToPortfolio: (items: InstrumentRow[]) => void;
 }
 
 export function InstrumentSearch({ addToPortfolio }: InstrumentSearchProps) {

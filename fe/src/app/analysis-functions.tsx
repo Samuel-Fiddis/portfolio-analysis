@@ -1,8 +1,19 @@
-import { DrawdownData, DrawdownDetails, OptimisedValues, PortfolioItem, PricePoint } from "./interfaces";
-import { HistoricalDataPoint, PeriodType, OptimisationResult } from "./interfaces";
+import {
+  DrawdownData,
+  DrawdownDetails,
+  OptimisedValues,
+  PortfolioItem,
+  PortfolioWeight,
+  PricePoint,
+} from "./interfaces";
+import {
+  HistoricalDataPoint,
+  PeriodType,
+  PortfolioAnalysisResult,
+} from "./interfaces";
 import { PERCENTAGE_MULTIPLIER } from "./page";
-import _ from 'lodash';
-import { parseISO, compareAsc, format } from 'date-fns';
+import _ from "lodash";
+import { parseISO, compareAsc, format } from "date-fns";
 
 function adjustReturnForPeriod(
   returns: number,
@@ -11,92 +22,92 @@ function adjustReturnForPeriod(
 ): number {
   switch (inputPeriod) {
     case "monthly":
-      if (outputPeriod === "yearly") return ((1 + returns / 100) ** 12 - 1) * 100;
-      if (outputPeriod === "daily") return ((1 + returns / 100) ** (1 / 22) - 1) * 100;
+      if (outputPeriod === "yearly")
+        return ((1 + returns / 100) ** 12 - 1) * 100;
+      if (outputPeriod === "daily")
+        return ((1 + returns / 100) ** (1 / 22) - 1) * 100;
     case "yearly":
-      if (outputPeriod === "monthly") return ((1 + returns / 100) ** (1 / 12) - 1) * 100;
-      if (outputPeriod === "daily") return ((1 + returns / 100) ** (1 / 252) - 1) * 100;
+      if (outputPeriod === "monthly")
+        return ((1 + returns / 100) ** (1 / 12) - 1) * 100;
+      if (outputPeriod === "daily")
+        return ((1 + returns / 100) ** (1 / 252) - 1) * 100;
     case "daily":
-      if (outputPeriod === "monthly") return ((1 + returns / 100) ** 22 - 1) * 100;
-      if (outputPeriod === "yearly") return ((1 + returns / 100) ** 252 - 1) * 100;
+      if (outputPeriod === "monthly")
+        return ((1 + returns / 100) ** 22 - 1) * 100;
+      if (outputPeriod === "yearly")
+        return ((1 + returns / 100) ** 252 - 1) * 100;
     default:
       throw new Error("Invalid period type");
   }
 }
 
-export function getArithmeticPortfolioReturn(
-  portfolio: PortfolioItem[],
-  avg: any
+export function getPortfolioArithmeticReturn(
+  weights: PortfolioWeight[],
+  avg_return: Record<string, number>
 ) {
-  return portfolio.reduce(
-    (sum, item) => sum + (avg[item.symbol] ?? 0) * (item.yourAllocation / 100),
+  return weights.reduce(
+    (sum, item) => sum + (avg_return[item.symbol] ?? 0) * item.value_proportion,
     0
   );
 }
 
 export function getPortfolioGeometricReturn(
-  portfolio: PortfolioItem[],
+  weights: PortfolioWeight[],
   historicalData: Record<string, HistoricalDataPoint[]>,
   inputPeriod: PeriodType = "monthly"
 ) {
-  const weightedReturns = portfolio.filter((item) => item.yourAllocation !== 0).map((item) => {
-    const symbol = item.symbol;
-    const weight = item.yourAllocation / 100.0;
-    const data = historicalData[symbol].map(
-      (point) => ((point.change_percent / 100.0) + 1) * weight
-    );
-    return data;
-  });
+  const weightedReturns: number[][] = _(weights)
+    .filter((item: PortfolioWeight) => item.value_proportion !== 0)
+    .map((item: PortfolioWeight) =>
+      _(historicalData[item.symbol])
+        .map(
+          (point: HistoricalDataPoint) =>
+            (point.change_percent / 100 + 1) * item.value_proportion
+        )
+        .value()
+    )
+    .value();
 
-  if (weightedReturns.length === 0) return 0;
+  if (_.isEmpty(weightedReturns)) return 0;
 
-  const maxLen = Math.max(...weightedReturns.map((arr) => arr.length));
-  const pivoted: number[][] = [];
-  for (let i = 0; i < maxLen; i++) {
-    pivoted[i] = weightedReturns.map((arr) => arr[i] ?? 0);
-  }
+  const maxLen = _.max(weightedReturns.map((arr) => arr.length)) ?? 0;
+  const pivoted = _.times(maxLen, (i) =>
+    weightedReturns.map((arr) => arr[i] ?? 0)
+  );
 
   const geoReturn =
-    (pivoted
-      .map((arr) => {
-        return arr.reduce((acc, val) => acc + val, 0);
-      })
-      .reduce((acc, val) => acc * val, 1) **
+    (pivoted.map((arr) => _.sum(arr)).reduce((acc, val) => acc * val, 1) **
       (1 / maxLen) -
       1) *
     100;
-
 
   return adjustReturnForPeriod(geoReturn, inputPeriod, "yearly");
 }
 
 export function getPortfolioStandardDeviation(
-  portfolio: PortfolioItem[],
-  stdDev: any,
-  corrMatrix: any
+  weights: PortfolioWeight[],
+  stdDev: Record<string, number>,
+  corrMatrix: Record<string, Record<string, number>>
 ) {
-  let portStdDev = 0;
-  for (let i = 0; i < portfolio.length; i++) {
-    for (let j = 0; j < portfolio.length; j++) {
-      const weightI = portfolio[i].yourAllocation / 100;
-      const weightJ = portfolio[j].yourAllocation / 100;
-      const symbolI = portfolio[i].symbol;
-      const symbolJ = portfolio[j].symbol;
-      portStdDev +=
-        weightI *
-        weightJ *
-        (corrMatrix[symbolI][symbolJ] ?? 0) *
-        (stdDev[symbolI] ?? 0) *
-        (stdDev[symbolJ] ?? 0);
-    }
-  }
-  return Math.sqrt(portStdDev);
+  const variance = _.sum(
+    _.flatMap(weights, ({ symbol: i, value_proportion: wi }: PortfolioWeight) =>
+      weights.map(
+        ({ symbol: j, value_proportion: wj }: PortfolioWeight) =>
+          wi *
+          wj *
+          (corrMatrix[i]?.[j] ?? 0) *
+          (stdDev[i] ?? 0) *
+          (stdDev[j] ?? 0)
+      )
+    )
+  );
+  return Math.sqrt(variance);
 }
 
 function getSharpeRatio(
   avg: number,
   stdDev: number,
-  risklessBorrowingRate: number,
+  risklessBorrowingRate: number
 ) {
   return (avg - risklessBorrowingRate) / stdDev;
 }
@@ -109,22 +120,29 @@ export function getPortfoliosSharpeRatio(
 
   return {
     ...optimisationData,
-    optimisation_results: optimisationData?.optimisation_results.map(result => ({
-      ...result,
-      sharpe_ratio_annualised: getSharpeRatio(
-        result.geometric_mean,
-        result.std_dev,
-        risklessBorrowingRate
-      ),
-    })),
+    optimisation_results: optimisationData?.optimisation_results.map(
+      (result) => ({
+        ...result,
+        sharpe_ratio_annualised: getSharpeRatio(
+          result.geometric_mean,
+          result.std_dev,
+          risklessBorrowingRate
+        ),
+      })
+    ),
   };
 }
 
-export function getMaxSharpeRatioGamma(optimisationResults: OptimisationResult[]): number | undefined {
+export function getMaxSharpeRatioGamma(
+  optimisationResults: PortfolioAnalysisResult[]
+): number | undefined {
   let maxIndex: number | undefined = undefined;
   let maxSharpe = -Infinity;
   optimisationResults.forEach((result, idx) => {
-    if (typeof result.sharpe_ratio_annualised === "number" && result.sharpe_ratio_annualised > maxSharpe) {
+    if (
+      typeof result.sharpe_ratio_annualised === "number" &&
+      result.sharpe_ratio_annualised > maxSharpe
+    ) {
       maxSharpe = result.sharpe_ratio_annualised;
       maxIndex = idx;
     }
@@ -169,24 +187,17 @@ export const calculateTotalPortfolioValue = (
 };
 
 export function getPortfolioDrawdownSeries(
-  portfolio: PortfolioItem[],
+  weights: PortfolioWeight[],
   historicalData: Record<string, HistoricalDataPoint[]>
 ): DrawdownData[] {
-  // Input validation
-  if (!portfolio.length || _.isEmpty(historicalData)) {
-    return [];
-  }
-
-  const totalAllocation = _.sumBy(portfolio, 'yourAllocation');
-
-  if (totalAllocation === 0) {
+  if (!weights.length || _.isEmpty(historicalData)) {
     return [];
   }
 
   const allDates = _(historicalData)
     .values()
     .flatten()
-    .map('trade_date')
+    .map("trade_date")
     .uniq()
     .sort((a: string, b: string) => compareAsc(parseISO(a), parseISO(b)))
     .value();
@@ -195,48 +206,47 @@ export function getPortfolioDrawdownSeries(
     return [];
   }
 
-  const weights = _(portfolio)
-    .keyBy('symbol')
-    .mapValues((item: PortfolioItem) => item.yourAllocation / totalAllocation)
-    .value();
-
   const dataLookup = _(historicalData)
-    .mapValues((dataArr: HistoricalDataPoint[]) => _.keyBy(dataArr, 'trade_date'))
+    .mapValues((dataArr: HistoricalDataPoint[]) =>
+      _.keyBy(dataArr, "trade_date")
+    )
     .value();
 
-  // 4. Calculate portfolio returns for each date
   const portfolioReturns = allDates.map((date: string) => {
-    return _(portfolio)
-      .map((item: PortfolioItem) => {
+    return _(weights)
+      .map((item: PortfolioWeight) => {
         const dataPoint = dataLookup[item.symbol]?.[date];
         const changePercent = dataPoint?.change_percent ?? 0;
-        return changePercent * (weights[item.symbol] ?? 0);
+        return changePercent * (item.value_proportion ?? 0);
       })
       .sum();
   });
 
-  // 5. Calculate cumulative returns using reduce for better performance
-  const cumulativeReturns = portfolioReturns.reduce((acc: number[], dailyReturn: number, index: number) => {
-    const prevCumulative = index === 0 ? 1 : acc[index - 1];
-    const newCumulative = prevCumulative * (1 + dailyReturn / 100);
-    acc.push(newCumulative);
-    return acc;
-  }, [] as number[]);
+  const cumulativeReturns = portfolioReturns.reduce(
+    (acc: number[], dailyReturn: number, index: number) => {
+      const prevCumulative = index === 0 ? 1 : acc[index - 1];
+      const newCumulative = prevCumulative * (1 + dailyReturn / 100);
+      acc.push(newCumulative);
+      return acc;
+    },
+    [] as number[]
+  );
 
-  // 6. Calculate drawdowns with running maximum
   let runningMax = 0;
   const drawdowns = cumulativeReturns.map((value: number) => {
     runningMax = Math.max(runningMax, value);
     return runningMax === 0 ? 0 : ((value - runningMax) / runningMax) * 100;
   });
 
-  // 7. Return formatted results
-  return _.zipWith(allDates, drawdowns, (trade_date: string, value: number) => ({
-    trade_date: new Date(trade_date).getTime(),
-    value: _.round(value, 4) // Round to avoid floating point precision issues
-  }));
+  return _.zipWith(
+    allDates,
+    drawdowns,
+    (trade_date: string, value: number) => ({
+      trade_date: new Date(trade_date).getTime(),
+      value: _.round(value, 4), // Round to avoid floating point precision issues
+    })
+  );
 }
-
 
 export function getMaxDrawdownDetails(
   drawdownSeries: DrawdownData[]
@@ -250,8 +260,7 @@ export function getMaxDrawdownDetails(
     };
   }
 
-  // Find the maximum drawdown (most negative value)
-  const minDrawdown = _.minBy(drawdownSeries, 'value');
+  const minDrawdown = _.minBy(drawdownSeries, "value");
   if (!minDrawdown) {
     return {
       percent: 0,
@@ -264,7 +273,6 @@ export function getMaxDrawdownDetails(
   const bottomIdx = _.findIndex(drawdownSeries, { value: minDrawdown.value });
   const bottomDate = drawdownSeries[bottomIdx].trade_date;
 
-  // Find the last date before the bottomIdx where drawdown was zero
   let startDate = drawdownSeries[0].trade_date;
   for (let i = bottomIdx - 1; i >= 0; i--) {
     if (drawdownSeries[i].value === 0) {
@@ -273,10 +281,10 @@ export function getMaxDrawdownDetails(
     }
   }
 
-  // Find recovery date (first point after bottom that reaches or exceeds previous peak)
   const postBottomSeries = _.drop(drawdownSeries, bottomIdx);
-  const recoveryPoint = _.find(postBottomSeries, (point: DrawdownData) =>
-    point.value >= 0
+  const recoveryPoint = _.find(
+    postBottomSeries,
+    (point: DrawdownData) => point.value >= 0
   );
 
   return {
@@ -286,4 +294,3 @@ export function getMaxDrawdownDetails(
     bottom_date: new Date(bottomDate).toISOString(),
   };
 }
-

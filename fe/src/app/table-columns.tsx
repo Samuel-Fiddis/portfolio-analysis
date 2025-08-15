@@ -596,7 +596,9 @@ export function getPortfolioColumns({
       header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
         <DataTableColumnHeader column={column} title="Exchange" />
       ),
-      cell: ({ cell }) => <div>{cell.getValue<PortfolioItem["exchange"]>()}</div>,
+      cell: ({ cell }) => (
+        <div>{cell.getValue<PortfolioItem["exchange"]>()}</div>
+      ),
       meta: {
         label: "Exchange",
       },
@@ -624,7 +626,7 @@ export function getPortfolioColumns({
       cell: ({ cell }) => {
         const symbol = cell.row.original.symbol;
         const [localValue, setLocalValue] = useState(
-          cell.row.original.currentShares,
+          cell.row.original.currentShares
         );
 
         // Sync local state if the row changes (e.g., after a refresh)

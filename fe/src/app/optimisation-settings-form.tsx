@@ -12,7 +12,7 @@ import {
 
 import {
   OPTIMISATION_SETTINGS_DESCRIPTIONS,
-  OptimisationSettings
+  OptimisationSettings,
 } from "./interfaces";
 import { useDebounce } from "@uidotdev/usehooks";
 import { MonthPicker } from "@/components/ui/monthpicker";
@@ -72,7 +72,6 @@ export function OptimisationForm({
                   localSettings[key as keyof OptimisationSettings] as Date
                 }
                 onMonthSelect={(date) => {
-                    console.log("Selected month:", date);
                   setLocalSettings((prev) => ({
                     ...prev,
                     [meta.name]: date,

@@ -3,17 +3,13 @@
 import { DataTable } from "@/components/custom/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
-import {
-  InstrumentRow,
-  PortfolioItem,
-} from "./interfaces";
+import { InstrumentRow, PortfolioItem } from "./interfaces";
 import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@/components/ui/button";
 import { getPortfolioColumns } from "./table-columns";
 import { DialogWrapper } from "./dialog-wrapper";
 import { InstrumentSearch } from "./instrument-search";
 import { SymbolSearchBox } from "./symbol-search-box";
-
 
 interface PortfolioDataTableProps {
   portfolio: PortfolioItem[];
@@ -25,11 +21,10 @@ interface PortfolioDataTableProps {
 export default function PortfolioDataTable({
   portfolio,
   setPortfolio,
-  toolBarChildren
+  toolBarChildren,
 }: PortfolioDataTableProps) {
   // Query state hooks
   function updateShares(symbol: string, shares: number) {
-    console.log(`Updating shares for ${symbol} to ${shares}`);
     setPortfolio((prev) => {
       return prev.map((item) => {
         if (item.symbol === symbol) {
@@ -42,7 +37,6 @@ export default function PortfolioDataTable({
       });
     });
   }
-
 
   const debouncedUpdateShares = useDebounceCallback(updateShares, 1000);
 
@@ -62,9 +56,7 @@ export default function PortfolioDataTable({
     getRowId: (row) => row.symbol,
   });
 
-  const addToPortfolio = (
-    items: InstrumentRow[]
-  ) => {
+  const addToPortfolio = (items: InstrumentRow[]) => {
     const toAdd: PortfolioItem[] = items.map((r) => {
       return {
         symbol: r.symbol,

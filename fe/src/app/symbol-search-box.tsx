@@ -7,9 +7,7 @@ import { InstrumentRow } from "./interfaces";
 export function SymbolSearchBox({
   addToPortfolio,
 }: {
-  addToPortfolio: (
-    items: InstrumentRow[],
-  ) => void;
+  addToPortfolio: (items: InstrumentRow[]) => void;
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const [symbolSearchValue, setSymbolSearchValue] = useState("");
@@ -19,15 +17,15 @@ export function SymbolSearchBox({
     setSymbolSearchValue(e.target.value);
   };
 
-const { data, isLoading, error } = useInstrumentSearchQuery(
-  {
-    symbol: debouncedValue,
-    name: debouncedValue,
-    page_size: null,
-    page: null,
-  },
-  ["simple-instrument-search", debouncedValue]
-);
+  const { data, isLoading, error } = useInstrumentSearchQuery(
+    {
+      symbol: debouncedValue,
+      name: debouncedValue,
+      page_size: null,
+      page: null,
+    },
+    ["simple-instrument-search", debouncedValue]
+  );
 
   const handleSelect = (item: any) => {
     addToPortfolio([

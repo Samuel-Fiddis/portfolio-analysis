@@ -24,9 +24,7 @@ import {
 export default function InstrumentDataTable({
   addToPortfolio,
 }: {
-  addToPortfolio: (
-    items: InstrumentRow[]
-  ) => void;
+  addToPortfolio: (items: InstrumentRow[]) => void;
 }) {
   // Query state hooks
   const [searcyQueryValues, setSearchQueryValues] = useQueryStates({
@@ -47,23 +45,27 @@ export default function InstrumentDataTable({
   const instrumentTypes: InstrumentType[] = ["Equities", "ETFs"];
   const [selectedType, setSelectedType] = useState<InstrumentType>("Equities");
 
-const { data = { data: [], pageCount: 0, options: {} }, isLoading, error } = useInstrumentSearchQuery(
-  {
-    symbol: debouncedQueryValues.symbol,
-    name: debouncedQueryValues.symbol,
-    instrument_type: selectedType,
-    currency: debouncedQueryValues.currency,
-    exchange: debouncedQueryValues.exchange,
-    sector: debouncedQueryValues.sector,
-    industry: debouncedQueryValues.industry,
-    category: debouncedQueryValues.category,
-    category_group: debouncedQueryValues.category_group,
-    family: debouncedQueryValues.family,
-    page: debouncedQueryValues.page,
-    page_size: debouncedQueryValues.perPage,
-  },
-  ["instrument-search", selectedType, debouncedQueryValues]
-);
+  const {
+    data = { data: [], pageCount: 0, options: {} },
+    isLoading,
+    error,
+  } = useInstrumentSearchQuery(
+    {
+      symbol: debouncedQueryValues.symbol,
+      name: debouncedQueryValues.symbol,
+      instrument_type: selectedType,
+      currency: debouncedQueryValues.currency,
+      exchange: debouncedQueryValues.exchange,
+      sector: debouncedQueryValues.sector,
+      industry: debouncedQueryValues.industry,
+      category: debouncedQueryValues.category,
+      category_group: debouncedQueryValues.category_group,
+      family: debouncedQueryValues.family,
+      page: debouncedQueryValues.page,
+      page_size: debouncedQueryValues.perPage,
+    },
+    ["instrument-search", selectedType, debouncedQueryValues]
+  );
 
   const columns = useMemo(
     () =>
@@ -99,7 +101,7 @@ const { data = { data: [], pageCount: 0, options: {} }, isLoading, error } = use
       onValueChange={(val) => setSelectedType(val as InstrumentType)}
     >
       <SelectTrigger className="w-[100px]">
-        <SelectValue placeholder="Select instrument type"/>
+        <SelectValue placeholder="Select instrument type" />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
@@ -126,14 +128,17 @@ const { data = { data: [], pageCount: 0, options: {} }, isLoading, error } = use
               size="sm"
               onClick={() =>
                 addToPortfolio(
-                  selectedRows.map((row) => ({
-                    symbol: row.getValue("symbol"),
-                    currency: row.getValue("currency"),
-                    instrument_type: row.getValue(
-                      "instrument_type"
-                    ) as InstrumentType,
-                    exchange: row.getValue("exchange"),
-                  } as InstrumentRow))
+                  selectedRows.map(
+                    (row) =>
+                      ({
+                        symbol: row.getValue("symbol"),
+                        currency: row.getValue("currency"),
+                        instrument_type: row.getValue(
+                          "instrument_type"
+                        ) as InstrumentType,
+                        exchange: row.getValue("exchange"),
+                      } as InstrumentRow)
+                  )
                 )
               }
             >
