@@ -24,20 +24,20 @@ export const AnalysisResults = ({
     <OptimisationSlider
       gamma={gamma}
       setGamma={setGamma}
-      optimisationResults={optimisationData?.optimisation_results || []}
+      optimisationResults={optimisationData?.optimisationResults || []}
     />
     <EfficiencyFrontierChart
-      optimisedPortfolios={optimisationData?.optimisation_results || []}
-      selectedPortfolio={optimisationData?.optimisation_results[gamma]}
+      optimisedPortfolios={optimisationData?.optimisationResults || []}
+      selectedPortfolio={optimisationData?.optimisationResults[gamma]}
       yourPortfolio={yourPortfolio}
     />
     {optimisationData && (
       <DrawdownChart
         drawdownData={
-          optimisationData?.optimisation_results[gamma]?.drawdown || []
+          optimisationData?.optimisationResults[gamma]?.drawdown || []
         }
         maxDrawdown={
-          optimisationData?.optimisation_results[gamma]?.max_drawdown
+          optimisationData?.optimisationResults[gamma]?.maxDrawdown
         }
         yourPortfolio={yourPortfolio}
       />
@@ -47,14 +47,14 @@ export const AnalysisResults = ({
         <div className="flex-1">
           <AllocationsBarChart
             optimisedAllocation={
-              optimisationData?.optimisation_results[gamma]?.weights
+              optimisationData?.optimisationResults[gamma]?.weights
             }
             yourAllocation={yourPortfolio?.weights}
           />
         </div>
         <div className="flex-1">
           <CorrelationHeatmap
-            corrMatrix={optimisationData?.stock_stats.corr_matrix}
+            corrMatrix={optimisationData?.stockStats.corrMatrix}
           />
         </div>
       </div>

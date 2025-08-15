@@ -97,7 +97,7 @@ const attachOptimisationToPortfolio = (
     if (!selectedResult?.weights) return portfolioWithQuotes;
 
     const weightsMap = Object.fromEntries(
-      selectedResult.weights.map((w: any) => [w.symbol, w.value_proportion])
+      selectedResult.weights.map((w: any) => [w.symbol, w.valueProportion])
     );
 
     return portfolioWithQuotes.map((item) => ({
@@ -118,13 +118,15 @@ const attachAnalysisToPortfolio = (
   if (!portfolioWithOptimisation?.length) return [];
 
   try {
-    const stdDev = optimisationData?.stock_stats?.std_dev ?? {};
-    const avgReturn = optimisationData?.stock_stats?.avg_return ?? {};
+    const stdDev = optimisationData?.stockStats?.stdDev ?? {};
+    const geometricMean = optimisationData?.stockStats?.geometricMean ?? {};
+    const arithmeticMean = optimisationData?.stockStats?.arithmeticMean ?? {};
 
     return portfolioWithOptimisation.map((item) => ({
       ...item,
       stdDev: stdDev[item.symbol] ?? item.stdDev,
-      avgReturn: avgReturn[item.symbol] ?? item.avgReturn,
+      geometricMean: geometricMean[item.symbol] ?? item.geometricMean,
+      arithmeticMean: arithmeticMean[item.symbol] ?? item.arithmeticMean,
     }));
   } catch (error) {
     console.warn("Error attaching analysis to portfolio:", error);
@@ -133,12 +135,12 @@ const attachAnalysisToPortfolio = (
 };
 
 const generatePortfolioAnalysis = (
-  historical_data: HistoricalData | undefined,
-  stock_stats: StockStats | undefined,
-  time_period: PeriodType | undefined,
+  historicalData: HistoricalData | undefined,
+  stockStats: StockStats | undefined,
+  timePeriod: PeriodType | undefined,
   portfolio: PortfolioItem[] | undefined
 ): PortfolioAnalysisResult | null => {
-  if (!historical_data || !stock_stats || !time_period || !portfolio?.length)
+  if (!historicalData || !stockStats || !timePeriod || !portfolio?.length)
     return null;
 
   try {
@@ -148,35 +150,35 @@ const generatePortfolioAnalysis = (
       )
       .map((item) => ({
         symbol: item.symbol || "",
-        value_proportion: item.yourAllocation / 100.0,
+        valueProportion: item.yourAllocation / 100.0,
       }));
 
     if (weights.length === 0) return null;
 
     const arithmeticMean = getPortfolioArithmeticReturn(
       weights,
-      stock_stats.avg_return
+      stockStats.arithmeticMean
     );
     const geometricMean = getPortfolioGeometricReturn(
       weights,
-      historical_data,
-      time_period
+      historicalData,
+      timePeriod
     );
     const stdDev = getPortfolioStandardDeviation(
       weights,
-      stock_stats.std_dev,
-      stock_stats.corr_matrix
+      stockStats.stdDev,
+      stockStats.corrMatrix
     );
-    const drawdownSeries = getPortfolioDrawdownSeries(weights, historical_data);
-    const maxDrawdownDetails = getMaxDrawdownDetails(drawdownSeries);
+    const drawdown = getPortfolioDrawdownSeries(weights, historicalData);
+    const maxDrawdown = getMaxDrawdownDetails(drawdown);
 
     return {
-      arithmetic_mean: arithmeticMean,
-      geometric_mean: geometricMean,
-      std_dev: stdDev,
-      weights: weights,
-      drawdown: drawdownSeries,
-      max_drawdown: maxDrawdownDetails,
+      arithmeticMean,
+      geometricMean,
+      stdDev,
+      weights,
+      drawdown,
+      maxDrawdown,
     };
   } catch (error) {
     console.warn("Error creating portfolio result:", error);
@@ -245,10 +247,10 @@ function MainApp() {
     optimisationSettings.endTime.toISOString().slice(0, ISO_DATE_LENGTH)
   );
 
-  const stockStats = optimisationData?.stock_stats;
-  const historicalData = optimisationData?.historical_data;
-  const timePeriod = optimisationData?.time_period;
-  const optimisationResults = optimisationData?.optimisation_results ?? [];
+  const stockStats = optimisationData?.stockStats;
+  const historicalData = optimisationData?.historicalData;
+  const timePeriod = optimisationData?.timePeriod;
+  const optimisationResults = optimisationData?.optimisationResults ?? [];
 
   const resetOptimisation = () => {
     refetchOptimisation();
@@ -303,7 +305,7 @@ function MainApp() {
   );
 
   const shouldShowAnalysis =
-    !isOptimising && enhancedOptimisationData?.optimisation_results?.length > 0;
+    !isOptimising && enhancedOptimisationData?.optimisationResults?.length > 0;
   const shouldShowOptimisation = portfolio.length > 1;
 
   return (

@@ -22,8 +22,8 @@ export default function EfficiencyFrontierChart({
   selectedPortfolio?: PortfolioAnalysisResult;
   yourPortfolio?: PortfolioAnalysisResult | null;
 }) {
-  const stdDevs = optimisedPortfolios.map((p) => p.std_dev);
-  const returns = optimisedPortfolios.map((p) => p.geometric_mean);
+  const stdDevs = optimisedPortfolios.map((p) => p.stdDev);
+  const returns = optimisedPortfolios.map((p) => p.geometricMean);
 
   // Calculate min/max and range for each axis
   const minStdDev = Math.min(...stdDevs);
@@ -51,7 +51,7 @@ export default function EfficiencyFrontierChart({
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
           type="number"
-          dataKey="std_dev"
+          dataKey="stdDev"
           domain={[() => minStdDev - xBuffer, () => maxStdDev + xBuffer]}
           tickFormatter={(value) => value.toFixed(2)}
           label={{
@@ -62,7 +62,7 @@ export default function EfficiencyFrontierChart({
           }}
         />
         <YAxis
-          dataKey="geometric_mean"
+          dataKey="geometricMean"
           type="number"
           domain={[() => minReturn - yBuffer, () => maxReturn + yBuffer]}
           tickFormatter={(value) => value.toFixed(2)}
@@ -78,7 +78,7 @@ export default function EfficiencyFrontierChart({
         />
         <Line
           type="monotone"
-          dataKey="geometric_mean"
+          dataKey="geometricMean"
           name="Efficiency Frontier"
           stroke="#288cfa"
           isAnimationActive={false}
@@ -94,8 +94,8 @@ export default function EfficiencyFrontierChart({
           />
         )}
         {yourPortfolio &&
-          yourPortfolio.geometric_mean &&
-          yourPortfolio.std_dev && (
+          yourPortfolio.geometricMean &&
+          yourPortfolio.stdDev && (
             <Scatter
               name="Your Portfolio"
               data={[yourPortfolio]}

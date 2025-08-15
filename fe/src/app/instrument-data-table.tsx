@@ -53,16 +53,16 @@ export default function InstrumentDataTable({
     {
       symbol: debouncedQueryValues.symbol,
       name: debouncedQueryValues.symbol,
-      instrument_type: selectedType,
+      instrumentType: selectedType,
       currency: debouncedQueryValues.currency,
       exchange: debouncedQueryValues.exchange,
       sector: debouncedQueryValues.sector,
       industry: debouncedQueryValues.industry,
       category: debouncedQueryValues.category,
-      category_group: debouncedQueryValues.category_group,
+      categoryGroup: debouncedQueryValues.category_group,
       family: debouncedQueryValues.family,
       page: debouncedQueryValues.page,
-      page_size: debouncedQueryValues.perPage,
+      pageSize: debouncedQueryValues.perPage,
     },
     ["instrument-search", selectedType, debouncedQueryValues]
   );
@@ -81,7 +81,7 @@ export default function InstrumentDataTable({
       sorting: [{ id: "symbol", desc: true }],
       columnVisibility: {
         summary: false,
-        instrument_type: false,
+        instrumentType: false,
       },
     },
     getRowId: (row) => row.symbol,
@@ -133,8 +133,8 @@ export default function InstrumentDataTable({
                       ({
                         symbol: row.getValue("symbol"),
                         currency: row.getValue("currency"),
-                        instrument_type: row.getValue(
-                          "instrument_type"
+                        instrumentType: row.getValue(
+                          "instrumentType"
                         ) as InstrumentType,
                         exchange: row.getValue("exchange"),
                       } as InstrumentRow)

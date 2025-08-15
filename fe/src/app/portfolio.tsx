@@ -60,7 +60,7 @@ export default function PortfolioDataTable({
     const toAdd: PortfolioItem[] = items.map((r) => {
       return {
         symbol: r.symbol,
-        instrumentType: r.instrument_type,
+        instrumentType: r.instrumentType,
         currentShares: 0,
         value: 0,
         currency: r.currency,

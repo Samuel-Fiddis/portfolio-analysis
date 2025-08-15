@@ -23,13 +23,25 @@ def get_averages(df, input_period=None, output_period=None):
     avg = df.pivot(index="trade_date", columns="symbol", values="change_percent").mean()
     return adjust_averages_for_period(avg, input_period, output_period)
 
+def get_geometric_mean(df, input_period=None, output_period=None):
+    """
+    Calculate the geometric average returns for each symbol.
+    :param df: DataFrame containing historical data with columns 'trade_date', 'symbol', and 'change_percent'.
+    :return: Series with geometric average returns for each symbol in percentage values e.g. (5.7%).
+    """
+    data = df.pivot(
+        index="trade_date", columns="symbol", values="change_percent"
+    ).apply(lambda x: 1 + (x / 100))  # Convert to decimal
+    time_periods = len(data.index)
+    geo_mean = ((data.prod() ** (1 / time_periods) - 1) * 100)  # Convert back to percentage
+    return adjust_averages_for_period(geo_mean, input_period, output_period)
 
 def get_standard_deviation(df, input_period=None, output_period=None):
     std = df.pivot(index="trade_date", columns="symbol", values="change_percent").std()
     return adjust_std_dev_for_period(std, input_period, output_period)
 
 
-def get_geometric_mean(df, weights, input_period=None, output_period=None):
+def get_porfolio_geometric_mean(df, weights, input_period=None, output_period=None):
     """
     Calculate the geometric average returns for each symbol.
     :param df: DataFrame containing historical data with columns 'trade_date', 'symbol', and 'change_percent'.

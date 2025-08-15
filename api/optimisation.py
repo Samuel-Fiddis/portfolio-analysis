@@ -8,7 +8,7 @@ from analysis import (
     adjust_std_dev_for_period,
     get_averages,
     get_covariance_matrix,
-    get_geometric_mean,
+    get_porfolio_geometric_mean,
     get_portfolio_drawdown_percentage
 )
 
@@ -43,7 +43,7 @@ def optimise_portfolio(data, time_period):
         gamma.value = gamma_vals[i]
         prob.solve()
         weights = pd.Series(w.value, index=avg.index)
-        geometric_mean = get_geometric_mean(data, weights, time_period, "yearly")
+        geometric_mean = get_porfolio_geometric_mean(data, weights, time_period, "yearly")
         arithmentic_mean = adjust_averages_for_period(ret.value[0], time_period, "yearly") #arithmetic mean
         std_annualised = adjust_std_dev_for_period(np.sqrt(risk.value), time_period, "yearly")
         drawdown = get_portfolio_drawdown_percentage(data, weights)

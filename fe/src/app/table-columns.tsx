@@ -66,13 +66,13 @@ function getEquitiesColumns(options: EquitiesOptions) {
       enableHiding: false,
     },
     {
-      id: "instrument_type",
-      accessorKey: "instrument_type",
+      id: "instrumentType",
+      accessorKey: "instrumentType",
       header: ({ column }: { column: Column<ETFsRow, unknown> }) => (
         <DataTableColumnHeader column={column} title="Instrument Type" />
       ),
       cell: ({ cell }) => (
-        <div>{cell.getValue<ETFsRow["instrument_type"]>()}</div>
+        <div>{cell.getValue<ETFsRow["instrumentType"]>()}</div>
       ),
       meta: {
         label: "Instrument Type",
@@ -183,13 +183,13 @@ function getEquitiesColumns(options: EquitiesOptions) {
       enableColumnFilter: true,
     },
     {
-      id: "industry_group",
-      accessorKey: "industry_group",
+      id: "industryGroup",
+      accessorKey: "industryGroup",
       header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
         <DataTableColumnHeader column={column} title="Industry Group" />
       ),
       cell: ({ cell }) => (
-        <div>{cell.getValue<EquitiesRow["industry_group"]>()}</div>
+        <div>{cell.getValue<EquitiesRow["industryGroup"]>()}</div>
       ),
       meta: {
         label: "Industry Group",
@@ -284,13 +284,13 @@ function getEquitiesColumns(options: EquitiesOptions) {
       },
     },
     {
-      id: "market_cap",
-      accessorKey: "market_cap",
+      id: "marketCap",
+      accessorKey: "marketCap",
       header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
         <DataTableColumnHeader column={column} title="Market Cap" />
       ),
       cell: ({ cell }) => (
-        <div>{cell.getValue<EquitiesRow["market_cap"]>()}</div>
+        <div>{cell.getValue<EquitiesRow["marketCap"]>()}</div>
       ),
       meta: {
         label: "Market Cap",
@@ -330,26 +330,26 @@ function getEquitiesColumns(options: EquitiesOptions) {
       },
     },
     {
-      id: "composite_figi",
-      accessorKey: "composite_figi",
+      id: "compositeFigi",
+      accessorKey: "compositeFigi",
       header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
         <DataTableColumnHeader column={column} title="Composite FIGI" />
       ),
       cell: ({ cell }) => (
-        <div>{cell.getValue<EquitiesRow["composite_figi"]>()}</div>
+        <div>{cell.getValue<EquitiesRow["compositeFigi"]>()}</div>
       ),
       meta: {
         label: "Composite FIGI",
       },
     },
     {
-      id: "shareclass_figi",
-      accessorKey: "shareclass_figi",
+      id: "shareclassFigi",
+      accessorKey: "shareclassFigi",
       header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
         <DataTableColumnHeader column={column} title="Shareclass FIGI" />
       ),
       cell: ({ cell }) => (
-        <div>{cell.getValue<EquitiesRow["shareclass_figi"]>()}</div>
+        <div>{cell.getValue<EquitiesRow["shareclassFigi"]>()}</div>
       ),
       meta: {
         label: "Shareclass FIGI",
@@ -384,13 +384,13 @@ function getETFsColumns(options: ETFsOptions) {
       enableHiding: false,
     },
     {
-      id: "instrument_type",
-      accessorKey: "instrument_type",
+      id: "instrumentType",
+      accessorKey: "instrumentType",
       header: ({ column }: { column: Column<ETFsRow, unknown> }) => (
         <DataTableColumnHeader column={column} title="Instrument Type" />
       ),
       cell: ({ cell }) => (
-        <div>{cell.getValue<ETFsRow["instrument_type"]>()}</div>
+        <div>{cell.getValue<ETFsRow["instrumentType"]>()}</div>
       ),
       meta: {
         label: "Instrument Type",
@@ -485,14 +485,14 @@ function getETFsColumns(options: ETFsOptions) {
         <DataTableColumnHeader column={column} title="Category Group" />
       ),
       cell: ({ cell }) => (
-        <div>{cell.getValue<ETFsRow["category_group"]>()}</div>
+        <div>{cell.getValue<ETFsRow["categoryGroup"]>()}</div>
       ),
       meta: {
         label: "Category Group",
         variant: "multiSelect",
         options:
-          options?.category_group &&
-          options?.category_group.map((value: String) => {
+          options?.categoryGroup &&
+          options?.categoryGroup.map((value: String) => {
             return {
               label: value,
               value: value,
@@ -722,18 +722,18 @@ export function getPortfolioColumns({
       },
     },
     {
-      id: "avgReturn",
-      accessorKey: "avgReturn",
+      id: "geometricMean",
+      accessorKey: "geometricMean",
       header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
-        <DataTableColumnHeader column={column} title="Arithmetic Mean" />
+        <DataTableColumnHeader column={column} title="Geometric Mean" />
       ),
       cell: ({ cell }) => {
-        const value = cell.getValue<PortfolioItem["avgReturn"]>();
+        const value = cell.getValue<PortfolioItem["geometricMean"]>();
         return value && <ColourValue value={value} min={20} max={30} />;
       },
       // Use ColorValue component to display the value with color coding
       meta: {
-        label: "Arithmetic Mean",
+        label: "Geometric Mean",
       },
     },
     {

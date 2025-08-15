@@ -24,10 +24,10 @@ export const DrawdownChart = ({
   yourPortfolio: PortfolioAnalysisResult | null;
 }) => {
   const data = drawdownData.map((item) => ({
-    trade_date: new Date(
-      String(item.trade_date).length === 13
-        ? item.trade_date
-        : item.trade_date * 1000
+    tradeDate: new Date(
+      String(item.tradeDate).length === 13
+        ? item.tradeDate
+        : item.tradeDate * 1000
     )
       .toISOString()
       .slice(0, 10),
@@ -35,18 +35,19 @@ export const DrawdownChart = ({
   }));
 
   const yourPortfolioDrawdown = yourPortfolio?.drawdown.map((item) => ({
-    trade_date: new Date(
-      String(item.trade_date).length === 13
-        ? item.trade_date
-        : item.trade_date * 1000
+    tradeDate: new Date(
+      String(item.tradeDate).length === 13
+        ? item.tradeDate
+        : item.tradeDate * 1000
     )
       .toISOString()
       .slice(0, 10),
     value: item.value || 0,
   }));
-  const yourPortfolioMaxDrawdown = yourPortfolio?.max_drawdown;
 
-  console.log(yourPortfolio)
+  const yourPortfolioMaxDrawdown = yourPortfolio?.maxDrawdown;
+
+  console.log("yourPortfolioDrawdown: ", yourPortfolioDrawdown);
 
   return (
     <div className="overflow-x-auto">
@@ -65,7 +66,7 @@ export const DrawdownChart = ({
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
-            dataKey="trade_date"
+            dataKey="tradeDate"
             label={{
               value: "Date",
               position: "insideBottom",
@@ -127,15 +128,15 @@ export const DrawdownChart = ({
               </div>
               <div>
                 <span className="font-semibold">Start Date:</span>{" "}
-                {maxDrawdown?.start_date?.slice(0, 10) || "Prior start"}
+                {maxDrawdown?.startDate?.slice(0, 10) || "Prior start"}
               </div>
               <div>
                 <span className="font-semibold">Bottom Date:</span>{" "}
-                {maxDrawdown?.bottom_date?.slice(0, 10) || "N/A"}
+                {maxDrawdown?.bottomDate?.slice(0, 10) || "N/A"}
               </div>
               <div>
                 <span className="font-semibold">End Date:</span>{" "}
-                {maxDrawdown?.end_date?.slice(0, 10) || "Ongoing"}
+                {maxDrawdown?.endDate?.slice(0, 10) || "Ongoing"}
               </div>
             </div>
           </div>
@@ -153,17 +154,16 @@ export const DrawdownChart = ({
                 </div>
                 <div>
                   <span className="font-semibold">Start Date:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.start_date?.slice(0, 10) ||
+                  {yourPortfolioMaxDrawdown?.startDate?.slice(0, 10) ||
                     "Prior start"}
                 </div>
                 <div>
                   <span className="font-semibold">Bottom Date:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.bottom_date?.slice(0, 10) || "N/A"}
+                  {yourPortfolioMaxDrawdown?.bottomDate?.slice(0, 10) || "N/A"}
                 </div>
                 <div>
                   <span className="font-semibold">End Date:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.end_date?.slice(0, 10) ||
-                    "Ongoing"}
+                  {yourPortfolioMaxDrawdown?.endDate?.slice(0, 10) || "Ongoing"}
                 </div>
               </div>
             </div>

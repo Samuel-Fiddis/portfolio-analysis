@@ -27,13 +27,13 @@ export default function StockChart({ data }: { data: QuoteData }) {
   const dateMap: Record<string, any> = {};
 
   symbols.forEach((symbol) => {
-    const historicalData = data[symbol].historical_data;
+    const historicalData = data[symbol].historicalData;
     historicalData.forEach((point) => {
-      const date = point.trade_date;
+      const date = point.tradeDate;
       if (!dateMap[date]) {
-        dateMap[date] = { trade_date: date };
+        dateMap[date] = { tradeDate: date };
       }
-      dateMap[date][symbol] = point.close_price;
+      dateMap[date][symbol] = point.closePrice;
     });
   });
 

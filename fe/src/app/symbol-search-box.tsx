@@ -21,7 +21,7 @@ export function SymbolSearchBox({
     {
       symbol: debouncedValue,
       name: debouncedValue,
-      page_size: null,
+      pageSize: null,
       page: null,
     },
     ["simple-instrument-search", debouncedValue]
@@ -32,7 +32,7 @@ export function SymbolSearchBox({
       {
         symbol: item.symbol,
         currency: item.currency,
-        instrument_type: item.instrument_type,
+        instrumentType: item.instrumentType,
         exchange: item.exchange,
       } as InstrumentRow,
     ]);

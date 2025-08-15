@@ -46,7 +46,7 @@ export function getPortfolioArithmeticReturn(
   avg_return: Record<string, number>
 ) {
   return weights.reduce(
-    (sum, item) => sum + (avg_return[item.symbol] ?? 0) * item.value_proportion,
+    (sum, item) => sum + (avg_return[item.symbol] ?? 0) * item.valueProportion,
     0
   );
 }
@@ -57,12 +57,12 @@ export function getPortfolioGeometricReturn(
   inputPeriod: PeriodType = "monthly"
 ) {
   const weightedReturns: number[][] = _(weights)
-    .filter((item: PortfolioWeight) => item.value_proportion !== 0)
+    .filter((item: PortfolioWeight) => item.valueProportion !== 0)
     .map((item: PortfolioWeight) =>
       _(historicalData[item.symbol])
         .map(
           (point: HistoricalDataPoint) =>
-            (point.change_percent / 100 + 1) * item.value_proportion
+            (point.changePercent / 100 + 1) * item.valueProportion
         )
         .value()
     )
@@ -71,12 +71,12 @@ export function getPortfolioGeometricReturn(
   if (_.isEmpty(weightedReturns)) return 0;
 
   const maxLen = _.max(weightedReturns.map((arr) => arr.length)) ?? 0;
-  const pivoted = _.times(maxLen, (i) =>
+  const pivoted = _.times(maxLen, (i: number) =>
     weightedReturns.map((arr) => arr[i] ?? 0)
   );
 
   const geoReturn =
-    (pivoted.map((arr) => _.sum(arr)).reduce((acc, val) => acc * val, 1) **
+    (pivoted.map((arr: number[]) => _.sum(arr)).reduce((acc: number, val: number) => acc * val, 1) **
       (1 / maxLen) -
       1) *
     100;
@@ -90,9 +90,9 @@ export function getPortfolioStandardDeviation(
   corrMatrix: Record<string, Record<string, number>>
 ) {
   const variance = _.sum(
-    _.flatMap(weights, ({ symbol: i, value_proportion: wi }: PortfolioWeight) =>
+    _.flatMap(weights, ({ symbol: i, valueProportion: wi }: PortfolioWeight) =>
       weights.map(
-        ({ symbol: j, value_proportion: wj }: PortfolioWeight) =>
+        ({ symbol: j, valueProportion: wj }: PortfolioWeight) =>
           wi *
           wj *
           (corrMatrix[i]?.[j] ?? 0) *
@@ -120,12 +120,12 @@ export function getPortfoliosSharpeRatio(
 
   return {
     ...optimisationData,
-    optimisation_results: optimisationData?.optimisation_results.map(
+    optimisationResults: optimisationData?.optimisationResults.map(
       (result) => ({
         ...result,
         sharpe_ratio_annualised: getSharpeRatio(
-          result.geometric_mean,
-          result.std_dev,
+          result.geometricMean,
+          result.stdDev,
           risklessBorrowingRate
         ),
       })
@@ -140,10 +140,10 @@ export function getMaxSharpeRatioGamma(
   let maxSharpe = -Infinity;
   optimisationResults.forEach((result, idx) => {
     if (
-      typeof result.sharpe_ratio_annualised === "number" &&
-      result.sharpe_ratio_annualised > maxSharpe
+      typeof result.sharpeRatioAnnualised === "number" &&
+      result.sharpeRatioAnnualised > maxSharpe
     ) {
-      maxSharpe = result.sharpe_ratio_annualised;
+      maxSharpe = result.sharpeRatioAnnualised;
       maxIndex = idx;
     }
   });
@@ -197,7 +197,7 @@ export function getPortfolioDrawdownSeries(
   const allDates = _(historicalData)
     .values()
     .flatten()
-    .map("trade_date")
+    .map("tradeDate")
     .uniq()
     .sort((a: string, b: string) => compareAsc(parseISO(a), parseISO(b)))
     .value();
@@ -208,7 +208,7 @@ export function getPortfolioDrawdownSeries(
 
   const dataLookup = _(historicalData)
     .mapValues((dataArr: HistoricalDataPoint[]) =>
-      _.keyBy(dataArr, "trade_date")
+      _.keyBy(dataArr, "tradeDate")
     )
     .value();
 
@@ -216,8 +216,8 @@ export function getPortfolioDrawdownSeries(
     return _(weights)
       .map((item: PortfolioWeight) => {
         const dataPoint = dataLookup[item.symbol]?.[date];
-        const changePercent = dataPoint?.change_percent ?? 0;
-        return changePercent * (item.value_proportion ?? 0);
+        const changePercent = dataPoint?.changePercent ?? 0;
+        return changePercent * (item.valueProportion ?? 0);
       })
       .sum();
   });
@@ -241,47 +241,38 @@ export function getPortfolioDrawdownSeries(
   return _.zipWith(
     allDates,
     drawdowns,
-    (trade_date: string, value: number) => ({
-      trade_date: new Date(trade_date).getTime(),
+    (tradeDate: string, value: number) => ({
+      tradeDate: new Date(tradeDate).getTime(),
       value: _.round(value, 4), // Round to avoid floating point precision issues
     })
   );
 }
 
 export function getMaxDrawdownDetails(
-  drawdownSeries: DrawdownData[]
+  drawdown: DrawdownData[]
 ): DrawdownDetails {
-  if (_.isEmpty(drawdownSeries)) {
+  if (_.isEmpty(drawdown)) {
     return {
       percent: 0,
-      start_date: "",
-      end_date: "",
-      bottom_date: "",
+      startDate: "",
+      endDate: "",
+      bottomDate: "",
     };
   }
 
-  const minDrawdown = _.minBy(drawdownSeries, "value");
-  if (!minDrawdown) {
-    return {
-      percent: 0,
-      start_date: "",
-      end_date: "",
-      bottom_date: "",
-    };
-  }
+  const minDrawdown = _.minBy(drawdown, "value");
+  const bottomIdx = _.findIndex(drawdown, { value: minDrawdown.value });
+  const bottomDate = drawdown[bottomIdx].tradeDate;
 
-  const bottomIdx = _.findIndex(drawdownSeries, { value: minDrawdown.value });
-  const bottomDate = drawdownSeries[bottomIdx].trade_date;
-
-  let startDate = drawdownSeries[0].trade_date;
+  let startDate = drawdown[0].tradeDate;
   for (let i = bottomIdx - 1; i >= 0; i--) {
-    if (drawdownSeries[i].value === 0) {
-      startDate = drawdownSeries[i].trade_date;
+    if (drawdown[i].value === 0) {
+      startDate = drawdown[i].tradeDate;
       break;
     }
   }
 
-  const postBottomSeries = _.drop(drawdownSeries, bottomIdx);
+  const postBottomSeries = _.drop(drawdown, bottomIdx);
   const recoveryPoint = _.find(
     postBottomSeries,
     (point: DrawdownData) => point.value >= 0
@@ -289,8 +280,8 @@ export function getMaxDrawdownDetails(
 
   return {
     percent: _.round(minDrawdown.value, 4),
-    start_date: new Date(startDate).toISOString(),
-    end_date: new Date(recoveryPoint?.trade_date).toISOString() ?? null,
-    bottom_date: new Date(bottomDate).toISOString(),
+    startDate: new Date(startDate).toISOString(),
+    endDate: new Date(recoveryPoint?.tradeDate).toISOString() ?? null,
+    bottomDate: new Date(bottomDate).toISOString(),
   };
 }

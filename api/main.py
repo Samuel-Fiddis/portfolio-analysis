@@ -9,21 +9,24 @@ import json
 import pandas as pd
 import math
 
-import financedatabase as fd
 from financetoolkit import Toolkit
 import yfinance as yf
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
+from humps import camelize
 from typing import Any, Dict, Union, List, Optional
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 
 from analysis import (
     get_averages,
+    get_geometric_mean,
     get_correlation_matrix,
     get_standard_deviation,
 )
+from utils import initialize_engine, initialize_financial_data
 from optimisation import optimise_portfolio
 
 from logging import basicConfig, INFO, getLogger
@@ -32,46 +35,9 @@ from logging import basicConfig, INFO, getLogger
 basicConfig(level=INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 log = getLogger(__name__)
 
-
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = int(os.getenv("DB_PORT", 5433))
-DB_NAME = os.getenv("DB_NAME", "postgres")
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
-API_KEY = os.getenv("FMP_API_KEY")
-
-
-def initialize_engine(retries=10, delay=5):
-    for attempt in range(retries):
-        try:
-            engine = create_engine(
-                f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-            )
-            with engine.connect() as connection:
-                connection.execute(text("SELECT 1;"))
-            log.info("Database connection established successfully")
-            return engine
-        except Exception as e:
-            log.error(f"Failed to connect to the database (attempt {attempt + 1}): {e}")
-            sleep(delay)
-    raise RuntimeError(
-        "Could not establish database connection after multiple attempts."
-    )
-
-
-def initialize_financial_data():
-    log.info("Initializing financial data...")
-    try:
-        equities = fd.Equities()
-        etfs = fd.ETFs()
-        log.info("Initialised financial data")
-        return equities, etfs
-    except Exception as e:
-        log.error(f"Failed to initialize financial data: {e}")
-        return None, None
-
-
 engine = initialize_engine()
+
+API_KEY = os.getenv("FMP_API_KEY")
 
 EQUITIES, ETFS = None, None
 while EQUITIES is None or ETFS is None:
@@ -87,14 +53,22 @@ INSTRUMENT_NAME_MAPPING = {
 StringList = Union[str, List[str]]
 
 
-class OptimisationSettings(BaseModel):
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True,
+    )
+
+
+class OptimisationSettings(BaseSchema):
     portfolio: List[Dict[str, Any]]
     time_period: str = "monthly"
     start_time: str
     end_time: str
 
 
-class SearchOptions(BaseModel):
+class SearchOptions(BaseSchema):
     # Values used by React Search DataTable
     page: Optional[int] = 1
     page_size: Optional[int] = 10
@@ -196,14 +170,16 @@ def search_instruments_helper(search_values, DBs):
         results = DB.select(**db_options)
         results.index = results.index.astype(str)
         results["name"] = results["name"].astype(str)
-        results["instrument_type"] = instrument_type
+        results["instrumentType"] = instrument_type
 
         exact_match = results[results.index == symbol]
-        startswith_match = results[(results.index.str.startswith(symbol)) & (results.index != symbol)]
+        startswith_match = results[
+            (results.index.str.startswith(symbol)) & (results.index != symbol)
+        ]
         already_matched = set(exact_match.index).union(startswith_match.index)
         name_contains_match = results[
-            (~results.index.isin(already_matched)) &
-            (results["name"].str.lower().str.contains(name))
+            (~results.index.isin(already_matched))
+            & (results["name"].str.lower().str.contains(name))
         ]
 
         all_exact = pd.concat([all_exact, exact_match])
@@ -285,14 +261,14 @@ async def analyse_instruments(settings: OptimisationSettings):
     corr_matrix = get_correlation_matrix(data)
     ret = get_averages(data, input_period=settings.time_period, output_period="yearly")
 
-    return {
+    return camelize({
         "historical_data": data.groupby("symbol")[
             ["trade_date", "close_price", "change_percent"]
         ].apply(lambda x: x.to_dict(orient="records")),
         "std_dev": std.to_dict(),
         "avg_return": ret.to_dict(),
         "corr_matrix": corr_matrix.to_dict(),
-    }
+    })
 
 
 def find_missing_portfolio_items(
@@ -349,21 +325,25 @@ async def optimise_portfolio_route(settings: OptimisationSettings):
     )
     corr_matrix = get_correlation_matrix(data)
     ret = get_averages(data, input_period=settings.time_period, output_period="yearly")
+    geo_ret = get_geometric_mean(
+        data, input_period=settings.time_period, output_period="yearly"
+    )
 
     optimisation_results = optimise_portfolio(data, settings.time_period)
 
-    return {
+    return camelize({
         "optimisation_results": optimisation_results,
         "time_period": settings.time_period,
         "historical_data": data.groupby("symbol")[
             ["trade_date", "close_price", "change_percent"]
-        ].apply(lambda x: x.to_dict(orient="records")),
+        ].apply(lambda x: camelize(x.to_dict(orient="records"))),
         "stock_stats": {
             "std_dev": std,
-            "avg_return": ret,
+            "arithmetic_mean": ret,
+            "geometric_mean": geo_ret,
             "corr_matrix": corr_matrix,
         },
-    }
+    })
 
 
 @app.post("/currencies", response_model=Dict[str, Any])
@@ -452,9 +432,7 @@ def get_missing_dates(
     end_time: str,
 ) -> List[str]:
     """Checks for missing dates in the database"""
-    data_dates = pd.to_datetime(
-        data["trade_date"]
-    ).dt.date.to_list()
+    data_dates = pd.to_datetime(data["trade_date"]).dt.date.to_list()
     if time_period == "daily":
         holidays = get_exchange_holidays(exchange, start_time, end_time)
         all_dates = (

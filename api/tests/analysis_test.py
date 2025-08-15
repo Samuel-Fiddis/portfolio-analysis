@@ -5,7 +5,7 @@ from pandas.testing import assert_frame_equal
 
 from analysis import (
     get_averages,
-    get_geometric_mean,
+    get_porfolio_geometric_mean,
     get_standard_deviation,
     get_covariance_matrix,
     get_correlation_matrix,
@@ -49,7 +49,7 @@ class TestAnalysis:
 
     def test_geometric_average(self, optimisation_test_data):
         weights = pd.Series({"MSFT": 0.7037, "AAPL": 0.1479, "DELL": 0.1484})
-        avg_returns = get_geometric_mean(
+        avg_returns = get_porfolio_geometric_mean(
             optimisation_test_data,
             weights,
             input_period="monthly",

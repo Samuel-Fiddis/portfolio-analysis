@@ -20,9 +20,9 @@ export default function AllocationsBarChart({
   // Prepare data for the chart
   const data = optimisedAllocation.map((item) => ({
     symbol: item.symbol,
-    optimisedValue: (item.value_proportion * 100).toFixed(2),
+    optimisedValue: (item.valueProportion * 100).toFixed(2),
     yourValue: (
-      yourAllocation?.find((a) => a.symbol === item.symbol)?.value_proportion ??
+      yourAllocation?.find((a) => a.symbol === item.symbol)?.valueProportion ??
       0
     ).toFixed(2),
   }));

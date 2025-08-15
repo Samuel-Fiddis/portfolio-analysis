@@ -4,7 +4,7 @@ from pandas.testing import assert_frame_equal
 
 from optimisation import optimise_portfolio
 
-from .analysis_test import optimisation_min_variance_drawdown
+from .analysis_test import optimisation_min_variance_drawdown  # noqa: F401
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def optimisation_data():
     return pd.read_csv('tests/data/optimisation_test_data.csv')
 
 class TestOptimisation:
-    def test_optimisation(self, optimisation_data, optimisation_min_variance_drawdown):
+    def test_optimisation(self, optimisation_data, optimisation_min_variance_drawdown):  # noqa: F811
         time_period = "monthly"
         optimal_portfolios = optimise_portfolio(optimisation_data, time_period)
 

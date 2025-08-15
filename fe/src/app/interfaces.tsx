@@ -7,7 +7,8 @@ export interface PortfolioItem {
   value: number;
   yourAllocation: number;
   stdDev?: number;
-  avgReturn?: number;
+  arithmeticMean?: number;
+  geometricMean?: number;
   sharePrice?: number;
   sharePriceDate?: string;
   investmentDate?: string;
@@ -16,45 +17,46 @@ export interface PortfolioItem {
 
 export interface PortfolioWeight {
   symbol: string;
-  value_proportion: number;
+  valueProportion: number;
 }
 
 export type HistoricalData = Record<string, HistoricalDataPoint[]>;
 
 export type StockStats = {
-  std_dev: Record<string, number>;
-  avg_return: Record<string, number>;
-  corr_matrix: Record<string, Record<string, number>>;
+  stdDev: Record<string, number>;
+  arithmeticMean: Record<string, number>;
+  geometricMean: Record<string, number>;
+  corrMatrix: Record<string, Record<string, number>>;
 };
 
 export interface OptimisedValues {
-  historical_data: HistoricalData;
-  time_period: PeriodType;
-  stock_stats: StockStats;
-  optimisation_results: PortfolioAnalysisResult[];
+  historicalData: HistoricalData;
+  timePeriod: PeriodType;
+  stockStats: StockStats;
+  optimisationResults: PortfolioAnalysisResult[];
 }
 
 export interface DrawdownData {
-  trade_date: number;
+  tradeDate: number;
   value: number;
 }
 
 export interface DrawdownDetails {
   percent: number;
-  start_date: string;
-  end_date: string;
-  bottom_date: string;
+  startDate: string;
+  endDate: string;
+  bottomDate: string;
 }
 
 export interface PortfolioAnalysisResult {
   gamma?: number;
-  std_dev: number;
-  arithmetic_mean: number;
-  geometric_mean: number;
-  sharpe_ratio_annualised?: number;
+  stdDev: number;
+  arithmeticMean: number;
+  geometricMean: number;
+  sharpeRatioAnnualised?: number;
   weights: PortfolioWeight[];
   drawdown: DrawdownData[];
-  max_drawdown: DrawdownDetails;
+  maxDrawdown: DrawdownDetails;
 }
 
 export interface CurrentPrice {
@@ -70,12 +72,12 @@ export interface InstrumentRow {
   summary: string;
   currency: string;
   exchange: string;
-  instrument_type: InstrumentType;
+  instrumentType: InstrumentType;
 }
 
 export interface EquitiesRow extends InstrumentRow {
   sector: string;
-  industry_group: string;
+  industryGroup: string;
   industry: string;
   market: string;
   country: string;
@@ -83,16 +85,16 @@ export interface EquitiesRow extends InstrumentRow {
   city: string;
   zipcode: string;
   website: string;
-  market_cap: string;
+  marketCap: string;
   isin: string;
   cusip: string;
   figi: string;
-  composite_figi: string;
-  shareclass_figi: string;
+  compositeFigi: string;
+  shareclassFigi: string;
 }
 
 export interface ETFsRow extends InstrumentRow {
-  category_group: string;
+  categoryGroup: string;
   category: string;
   family: string;
 }
@@ -106,7 +108,7 @@ export interface EquitiesOptions {
 
 export interface ETFsOptions {
   currency?: string[];
-  category_group?: string[];
+  categoryGroup?: string[];
   category?: string[];
   family?: string[];
   exchange?: string[];
@@ -194,16 +196,17 @@ export const DEFAULT_OPTIMISATION_SETTINGS: OptimisationSettings = {
 };
 
 export interface HistoricalDataPoint {
-  trade_date: string;
-  close_price: number;
-  change_percent: number;
+  tradeDate: string;
+  closePrice: number;
+  changePercent: number;
 }
 
 export interface QuoteEntry {
-  historical_data: HistoricalDataPoint[];
-  std_dev: number;
-  avg_return: number;
-  corr_matrix: Record<string, Record<string, number>>;
+  historicalData: HistoricalDataPoint[];
+  stdDev: number;
+  arithmeticMean: number;
+  geometricMean: number;
+  corrMatrix: Record<string, Record<string, number>>;
 }
 
 export interface QuoteData {
@@ -213,15 +216,15 @@ export interface QuoteData {
 export interface InstrumentSearchPayload {
   symbol?: string;
   name?: string;
-  instrument_type?: InstrumentType;
+  instrumentType?: InstrumentType;
   currency?: string[] | null;
   exchange?: string[] | null;
   sector?: string[] | null;
   industry?: string[] | null;
   category?: string[] | null;
-  category_group?: string[] | null;
+  categoryGroup?: string[] | null;
   family?: string[] | null;
-  page_size?: string | null;
+  pageSize?: string | null;
   page?: string | null;
   options?: Record<string, string[]>;
 }
