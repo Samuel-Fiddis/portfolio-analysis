@@ -47,7 +47,14 @@ export const DrawdownChart = ({
 
   const yourPortfolioMaxDrawdown = yourPortfolio?.maxDrawdown;
 
-  console.log("yourPortfolioDrawdown: ", yourPortfolioDrawdown);
+  const allValues = [
+    ...data.map((d) => d.value),
+    ...(yourPortfolioDrawdown ? yourPortfolioDrawdown.map((d) => d.value) : []),
+  ];
+  const minY = Math.min(...allValues, 0); // 0 as fallback
+  const maxY = Math.max(...allValues, 0);
+
+  const yAxisTickInterval = 5;
 
   return (
     <div className="overflow-x-auto">
@@ -75,6 +82,19 @@ export const DrawdownChart = ({
             }}
           />
           <YAxis
+            type="number"
+            domain={[minY - 1, maxY]}
+            ticks={Array.from(
+              {
+                length:
+                  Math.ceil(
+                    (Math.ceil(maxY / yAxisTickInterval) * yAxisTickInterval -
+                      Math.floor((minY - 1) / yAxisTickInterval) * yAxisTickInterval) /
+                      yAxisTickInterval
+                  ) + 1,
+              },
+              (_, i) => Math.floor((minY - 1) / yAxisTickInterval) * yAxisTickInterval + i * yAxisTickInterval
+            )}
             label={{
               value: "Drawdown (%)",
               angle: -90,

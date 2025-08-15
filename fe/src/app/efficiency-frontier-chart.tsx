@@ -38,6 +38,8 @@ export default function EfficiencyFrontierChart({
   const yBuffer = returnRange * yBoarderBuffer;
 
   const fontSize = 14;
+  const yAxisTickInterval = 2;
+  const xAsixTickInterval = 2;
 
   return (
     <div className="overflow-x-auto">
@@ -54,6 +56,17 @@ export default function EfficiencyFrontierChart({
           dataKey="stdDev"
           domain={[() => minStdDev - xBuffer, () => maxStdDev + xBuffer]}
           tickFormatter={(value) => value.toFixed(2)}
+          ticks={Array.from(
+              {
+                length:
+                  Math.ceil(
+                    (Math.ceil(maxStdDev / xAsixTickInterval) * xAsixTickInterval -
+                      Math.floor((minStdDev - 1) / xAsixTickInterval) * xAsixTickInterval) /
+                      xAsixTickInterval
+                  ) + 1,
+              },
+              (_, i) => Math.floor((minStdDev - 1) / xAsixTickInterval) * xAsixTickInterval + i * xAsixTickInterval
+            )}
           label={{
             value: "Standard Deviation (Risk %)",
             position: "insideBottom",
@@ -66,6 +79,17 @@ export default function EfficiencyFrontierChart({
           type="number"
           domain={[() => minReturn - yBuffer, () => maxReturn + yBuffer]}
           tickFormatter={(value) => value.toFixed(2)}
+          ticks={Array.from(
+              {
+                length:
+                  Math.ceil(
+                    (Math.ceil(maxReturn / yAxisTickInterval) * yAxisTickInterval -
+                      Math.floor((minReturn - 1) / yAxisTickInterval) * yAxisTickInterval) /
+                      yAxisTickInterval
+                  ) + 1,
+              },
+              (_, i) => Math.floor((minReturn - 1) / yAxisTickInterval) * yAxisTickInterval + i * yAxisTickInterval
+            )}
           label={{
             value: "Annualised Return (%)",
             angle: -90,

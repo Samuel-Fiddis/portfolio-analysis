@@ -65,7 +65,7 @@ export default function PortfolioDataTable({
         value: 0,
         currency: r.currency,
         exchange: r.exchange,
-        yourAllocation: 0,
+        yourAllocation: 0.0,
       };
     });
     setPortfolio((prevPortfolio) => {
