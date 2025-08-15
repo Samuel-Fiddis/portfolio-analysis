@@ -1,10 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { useInstrumentSearchQuery } from "./custom-hooks";
+import { useInstrumentSearchQuery } from "../hooks/custom-hooks";
 import { useDebounce } from "@uidotdev/usehooks";
-import { InstrumentRow } from "./interfaces";
+import { InstrumentRow } from "../types/interfaces";
 
-export function SymbolSearchBox({
+export default function SymbolSearchBox({
   addToPortfolio,
 }: {
   addToPortfolio: (items: InstrumentRow[]) => void;

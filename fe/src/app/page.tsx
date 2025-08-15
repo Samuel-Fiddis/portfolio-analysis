@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import PortfolioDataTable from "./portfolio";
+import PortfolioDataTable from "../components/tables/PortfolioDataTable";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -11,28 +11,18 @@ import {
   OptimisedValues,
   PortfolioItem,
   PricePoint,
-  PortfolioWeight,
-  HistoricalData,
-  StockStats,
-  PeriodType,
-} from "./interfaces";
+} from "../types/interfaces";
 import {
   useCurrentPrice,
   useCurrencyConversion,
   usePortfolioOptimisation,
-} from "./custom-hooks";
+} from "../hooks/custom-hooks";
 import {
   calculateAllocationPercentage,
-  calculateTotalPortfolioValue,
-  getPortfolioArithmeticReturn,
-  getMaxDrawdownDetails,
-  getPortfolioDrawdownSeries,
-  getPortfolioGeometricReturn,
-  getPortfoliosSharpeRatio,
-  getPortfolioStandardDeviation,
-} from "./analysis-functions";
-import { Optimisation } from "./optimisation";
-import { AnalysisResults } from "./AnalysisResults";
+  calculateTotalPortfolioValue, generatePortfolioAnalysis, getPortfoliosSharpeRatio
+} from "../lib/analysis-functions";
+import Optimisation from "../components/Optimisation";
+import { AnalysisResults } from "../components/AnalysisResults";
 
 export const PERCENTAGE_MULTIPLIER = 100;
 const ISO_DATE_LENGTH = 10;
@@ -134,58 +124,6 @@ const attachAnalysisToPortfolio = (
   }
 };
 
-const generatePortfolioAnalysis = (
-  historicalData: HistoricalData | undefined,
-  stockStats: StockStats | undefined,
-  timePeriod: PeriodType | undefined,
-  portfolio: PortfolioItem[] | undefined
-): PortfolioAnalysisResult | null => {
-  if (!historicalData || !stockStats || !timePeriod || !portfolio?.length)
-    return null;
-
-  try {
-    const weights: PortfolioWeight[] = portfolio
-      .filter(
-        (item) => item.yourAllocation !== undefined && item.yourAllocation !== 0
-      )
-      .map((item) => ({
-        symbol: item.symbol || "",
-        valueProportion: item.yourAllocation / 100.0,
-      }));
-
-    if (weights.length === 0) return null;
-
-    const arithmeticMean = getPortfolioArithmeticReturn(
-      weights,
-      stockStats.arithmeticMean
-    );
-    const geometricMean = getPortfolioGeometricReturn(
-      weights,
-      historicalData,
-      timePeriod
-    );
-    const stdDev = getPortfolioStandardDeviation(
-      weights,
-      stockStats.stdDev,
-      stockStats.corrMatrix
-    );
-    const drawdown = getPortfolioDrawdownSeries(weights, historicalData);
-    const maxDrawdown = getMaxDrawdownDetails(drawdown);
-
-    return {
-      arithmeticMean,
-      geometricMean,
-      stdDev,
-      weights,
-      drawdown,
-      maxDrawdown,
-    };
-  } catch (error) {
-    console.warn("Error creating portfolio result:", error);
-    return null;
-  }
-};
-
 const extractUniqueSymbols = (portfolio: PortfolioItem[]): string[] => {
   if (!portfolio?.length) return [];
   return portfolio
@@ -226,11 +164,6 @@ function MainApp() {
   const { data: quotes } = useCurrentPrice(symbols);
   const { data: currencyRates } = useCurrencyConversion(currencies);
 
-  const portfolioWithQuotes = useMemo(
-    () => attachQuotesToPortfolio(portfolio, quotes, currencyRates),
-    [portfolio, quotes, currencyRates]
-  );
-
   useEffect(() => {
     queryClient.removeQueries({ queryKey: ["portfolioOptimise"] });
   }, [portfolio.length]);
@@ -247,10 +180,12 @@ function MainApp() {
     optimisationSettings.endTime.toISOString().slice(0, ISO_DATE_LENGTH)
   );
 
-  const stockStats = optimisationData?.stockStats;
-  const historicalData = optimisationData?.historicalData;
-  const timePeriod = optimisationData?.timePeriod;
-  const optimisationResults = optimisationData?.optimisationResults ?? [];
+  const {
+    stockStats = undefined,
+    historicalData = undefined,
+    timePeriod = undefined,
+    optimisationResults = [],
+  } = optimisationData ?? {};
 
   const resetOptimisation = () => {
     refetchOptimisation();
@@ -264,6 +199,12 @@ function MainApp() {
     refetchOptimisation: resetOptimisation,
     isOptimising,
   });
+
+  // Attach price quotes to portfolio
+  const portfolioWithQuotes = useMemo(
+    () => attachQuotesToPortfolio(portfolio, quotes, currencyRates),
+    [portfolio, quotes, currencyRates]
+  );
 
   // Calculate your portfolio metrics
   const yourPortfolio = useMemo(

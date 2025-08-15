@@ -3,13 +3,13 @@
 import { DataTable } from "@/components/custom/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
-import { InstrumentRow, PortfolioItem } from "./interfaces";
+import { InstrumentRow, PortfolioItem } from "../../types/interfaces";
 import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@/components/ui/button";
-import { getPortfolioColumns } from "./table-columns";
-import { DialogWrapper } from "./dialog-wrapper";
-import { InstrumentSearch } from "./instrument-search";
-import { SymbolSearchBox } from "./symbol-search-box";
+import { getPortfolioColumns } from "../../types/table-columns";
+import DialogWrapper from "../DialogWrapper";
+import InstrumentSearch from "../InstrumentSearch";
+import SymbolSearchBox from "../SymbolSearchBox";
 
 interface PortfolioDataTableProps {
   portfolio: PortfolioItem[];

@@ -5,10 +5,10 @@ import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
 import { DataTable } from "@/components/custom/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
-import { getTableColumns } from "./table-columns";
+import { getTableColumns } from "../../types/table-columns";
 import { useDebounce } from "@uidotdev/usehooks";
-import { useInstrumentSearchQuery } from "./custom-hooks";
-import { InstrumentRow, InstrumentType } from "./interfaces";
+import { useInstrumentSearchQuery } from "../../hooks/custom-hooks";
+import { InstrumentRow, InstrumentType } from "../../types/interfaces";
 import { Button } from "@/components/ui/button";
 
 import {

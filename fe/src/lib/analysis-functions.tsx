@@ -1,17 +1,19 @@
 import {
   DrawdownData,
   DrawdownDetails,
+  HistoricalData,
   OptimisedValues,
   PortfolioItem,
   PortfolioWeight,
   PricePoint,
-} from "./interfaces";
+  StockStats,
+} from "../types/interfaces";
 import {
   HistoricalDataPoint,
   PeriodType,
   PortfolioAnalysisResult,
-} from "./interfaces";
-import { PERCENTAGE_MULTIPLIER } from "./page";
+} from "../types/interfaces";
+import { PERCENTAGE_MULTIPLIER } from "../app/page";
 import _ from "lodash";
 import { parseISO, compareAsc, format } from "date-fns";
 
@@ -76,7 +78,9 @@ export function getPortfolioGeometricReturn(
   );
 
   const geoReturn =
-    (pivoted.map((arr: number[]) => _.sum(arr)).reduce((acc: number, val: number) => acc * val, 1) **
+    (pivoted
+      .map((arr: number[]) => _.sum(arr))
+      .reduce((acc: number, val: number) => acc * val, 1) **
       (1 / maxLen) -
       1) *
     100;
@@ -238,14 +242,10 @@ export function getPortfolioDrawdownSeries(
     return runningMax === 0 ? 0 : ((value - runningMax) / runningMax) * 100;
   });
 
-  return _.zipWith(
-    allDates,
-    drawdowns,
-    (tradeDate: string, value: number) => ({
-      tradeDate: new Date(tradeDate).getTime(),
-      value: _.round(value, 4), // Round to avoid floating point precision issues
-    })
-  );
+  return _.zipWith(allDates, drawdowns, (tradeDate: string, value: number) => ({
+    tradeDate: new Date(tradeDate).getTime(),
+    value: _.round(value, 4), // Round to avoid floating point precision issues
+  }));
 }
 
 export function getMaxDrawdownDetails(
@@ -285,3 +285,55 @@ export function getMaxDrawdownDetails(
     bottomDate: new Date(bottomDate).toISOString(),
   };
 }
+
+export const generatePortfolioAnalysis = (
+  historicalData: HistoricalData | undefined,
+  stockStats: StockStats | undefined,
+  timePeriod: PeriodType | undefined,
+  portfolio: PortfolioItem[] | undefined
+): PortfolioAnalysisResult | null => {
+  if (!historicalData || !stockStats || !timePeriod || !portfolio?.length)
+    return null;
+
+  try {
+    const weights: PortfolioWeight[] = portfolio
+      .filter(
+        (item) => item.yourAllocation !== undefined && item.yourAllocation !== 0
+      )
+      .map((item) => ({
+        symbol: item.symbol || "",
+        valueProportion: item.yourAllocation / 100.0,
+      }));
+
+    if (weights.length === 0) return null;
+
+    const arithmeticMean = getPortfolioArithmeticReturn(
+      weights,
+      stockStats.arithmeticMean
+    );
+    const geometricMean = getPortfolioGeometricReturn(
+      weights,
+      historicalData,
+      timePeriod
+    );
+    const stdDev = getPortfolioStandardDeviation(
+      weights,
+      stockStats.stdDev,
+      stockStats.corrMatrix
+    );
+    const drawdown = getPortfolioDrawdownSeries(weights, historicalData);
+    const maxDrawdown = getMaxDrawdownDetails(drawdown);
+
+    return {
+      arithmeticMean,
+      geometricMean,
+      stdDev,
+      weights,
+      drawdown,
+      maxDrawdown,
+    };
+  } catch (error) {
+    console.warn("Error creating portfolio result:", error);
+    return null;
+  }
+};

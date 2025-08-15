@@ -14,7 +14,7 @@ interface DialogWrapperProps extends React.ComponentProps<"div"> {
   dialogDescription?: string;
 }
 
-export function DialogWrapper({
+export default function DialogWrapper({
   buttonText,
   dialogTitle,
   dialogDescription,

@@ -12,9 +12,9 @@ import {
   DrawdownData,
   DrawdownDetails,
   PortfolioAnalysisResult,
-} from "./interfaces";
+} from "../../types/interfaces";
 
-export const DrawdownChart = ({
+export default function DrawdownChart({
   drawdownData,
   maxDrawdown,
   yourPortfolio,
@@ -22,7 +22,7 @@ export const DrawdownChart = ({
   drawdownData: DrawdownData[];
   maxDrawdown: DrawdownDetails;
   yourPortfolio: PortfolioAnalysisResult | null;
-}) => {
+}) {
   const data = drawdownData.map((item) => ({
     tradeDate: new Date(
       String(item.tradeDate).length === 13

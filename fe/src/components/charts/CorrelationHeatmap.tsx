@@ -1,4 +1,4 @@
-export function CorrelationHeatmap({
+export default function CorrelationHeatmap({
   corrMatrix,
 }: {
   corrMatrix: Record<string, Record<string, number>>;

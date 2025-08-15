@@ -8,7 +8,7 @@ import {
   Scatter,
   Tooltip,
 } from "recharts";
-import { PortfolioAnalysisResult } from "./interfaces";
+import { PortfolioAnalysisResult } from "../../types/interfaces";
 
 const xBoarderBuffer = 0.2;
 const yBoarderBuffer = 0.2;

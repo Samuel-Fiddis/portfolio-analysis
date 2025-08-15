@@ -1,13 +1,13 @@
-import InstrumentDataTable from "./instrument-data-table";
+import InstrumentDataTable from "./tables/InstrumentDataTable";
 
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { InstrumentRow, InstrumentType } from "./interfaces";
+import { InstrumentRow, InstrumentType } from "../types/interfaces";
 
 interface InstrumentSearchProps {
   addToPortfolio: (items: InstrumentRow[]) => void;
 }
 
-export function InstrumentSearch({ addToPortfolio }: InstrumentSearchProps) {
+export default function InstrumentSearch({ addToPortfolio }: InstrumentSearchProps) {
   return (
     <>
       <NuqsAdapter>

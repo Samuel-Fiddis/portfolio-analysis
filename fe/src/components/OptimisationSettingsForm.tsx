@@ -13,11 +13,11 @@ import {
 import {
   OPTIMISATION_SETTINGS_DESCRIPTIONS,
   OptimisationSettings,
-} from "./interfaces";
+} from "../types/interfaces";
 import { useDebounce } from "@uidotdev/usehooks";
 import { MonthPicker } from "@/components/ui/monthpicker";
 
-export function OptimisationForm({
+export default function OptimisationSettingsForm({
   optimisationSettings,
   setOptimisationSettings,
 }: {

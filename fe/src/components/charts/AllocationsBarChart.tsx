@@ -8,7 +8,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { PortfolioWeight } from "./interfaces";
+import { PortfolioWeight } from "../../types/interfaces";
 
 export default function AllocationsBarChart({
   optimisedAllocation,

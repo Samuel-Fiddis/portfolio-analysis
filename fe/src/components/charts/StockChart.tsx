@@ -7,7 +7,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { QuoteData } from "./interfaces";
+import { QuoteData } from "../../types/interfaces";
 
 const lineColors = [
   "#8884d8", // purple

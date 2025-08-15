@@ -1,10 +1,10 @@
 "use client";
-import AllocationsBarChart from "./allocations-bar-chart";
-import { CorrelationHeatmap } from "./correlation-heatmap";
-import { DrawdownChart } from "./drawdown-chart";
-import EfficiencyFrontierChart from "./efficiency-frontier-chart";
-import { PortfolioAnalysisResult, OptimisedValues } from "./interfaces";
-import { OptimisationSlider } from "./optimisation-slider";
+import AllocationsBarChart from "./charts/AllocationsBarChart";
+import CorrelationHeatmap from "./charts/CorrelationHeatmap";
+import DrawdownChart from "./charts/DrawdownChart";
+import EfficiencyFrontierChart from "./charts/EfficiencyFrontierChart";
+import { PortfolioAnalysisResult, OptimisedValues } from "../types/interfaces";
+import OptimisationSlider from "./OptimisationSlider";
 
 export const AnalysisResults = ({
   gamma,

@@ -1,4 +1,4 @@
-import { OptimisationForm } from "./optimisation-settings-form";
+import OptimisationSettingsForm from "./OptimisationSettingsForm";
 import { Settings } from "lucide-react";
 
 import {
@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { OptimisationSettings } from "./interfaces";
+import { OptimisationSettings } from "../types/interfaces";
 
 interface OptimisationProps {
   optimisationSettings: OptimisationSettings;
@@ -26,7 +26,7 @@ interface OptimisationProps {
   isOptimising: boolean;
 }
 
-export function Optimisation({
+export default function Optimisation({
   optimisationSettings,
   setOptimisationSettings,
   refetchOptimisation,
@@ -61,7 +61,7 @@ export function Optimisation({
               Make changes to your optimisation settings here.
             </SheetDescription>
           </SheetHeader>
-          <OptimisationForm
+          <OptimisationSettingsForm
             optimisationSettings={optimisationSettings}
             setOptimisationSettings={setOptimisationSettings}
           />

@@ -5,7 +5,7 @@ import {
   PricePoint,
   InstrumentSearchPayload,
   InstrumentRow,
-} from "./interfaces";
+} from "../types/interfaces";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -63,9 +63,9 @@ export function usePortfolioOptimisation(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           portfolio,
-          time_period: timePeriod,
-          start_time: startTime,
-          end_time: endTime,
+          timePeriod,
+          startTime,
+          endTime,
         }),
       });
       if (!response.ok) throw new Error("Network response was not ok");
@@ -89,9 +89,9 @@ export function useAnalyseInstruments(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           symbols,
-          time_period: timePeriod,
-          start_time: startTime,
-          end_time: endTime,
+          timePeriod,
+          startTime,
+          endTime,
         }),
       });
       if (!response.ok) throw new Error("Network response was not ok");

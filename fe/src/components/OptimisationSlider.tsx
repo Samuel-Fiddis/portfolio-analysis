@@ -5,11 +5,11 @@ import {
   SliderTrack,
 } from "@radix-ui/react-slider";
 
-import { PortfolioAnalysisResult } from "./interfaces";
-import { getMaxSharpeRatioGamma } from "./analysis-functions";
+import { PortfolioAnalysisResult } from "../types/interfaces";
+import { getMaxSharpeRatioGamma } from "../lib/analysis-functions";
 import { Button } from "@/components/ui/button";
 
-export function OptimisationSlider({
+export default function OptimisationSlider({
   gamma,
   setGamma,
   optimisationResults,
