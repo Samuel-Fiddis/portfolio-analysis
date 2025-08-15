@@ -196,9 +196,9 @@ def search_instruments_helper(search_values, DBs):
     if page_size is None or page is None:
         return {"data": all_results_json, "pageCount": 1, "options": all_options}
     return {
-        "data": all_results_json[(page - 1) * page_size : page * page_size],
+        "data": [camelize(result) for result in all_results_json[(page - 1) * page_size : page * page_size]],
         "pageCount": math.ceil(len(all_results_json) / page_size),
-        "options": all_options,
+        "options": camelize(all_options),
     }
 
 

@@ -43,10 +43,10 @@ function adjustReturnForPeriod(
 
 export function getPortfolioArithmeticReturn(
   weights: PortfolioWeight[],
-  avg_return: Record<string, number>
+  avgReturn: Record<string, number>
 ) {
   return weights.reduce(
-    (sum, item) => sum + (avg_return[item.symbol] ?? 0) * item.valueProportion,
+    (sum, item) => sum + (avgReturn[item.symbol] ?? 0) * item.valueProportion,
     0
   );
 }
@@ -123,7 +123,7 @@ export function getPortfoliosSharpeRatio(
     optimisationResults: optimisationData?.optimisationResults.map(
       (result) => ({
         ...result,
-        sharpe_ratio_annualised: getSharpeRatio(
+        sharpeRatioAnnualised: getSharpeRatio(
           result.geometricMean,
           result.stdDev,
           risklessBorrowingRate

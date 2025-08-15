@@ -48,7 +48,7 @@ export default function StockChart({ data }: { data: QuoteData }) {
     >
       <CartesianGrid strokeDasharray="3 3" />
       <XAxis
-        dataKey="trade_date"
+        dataKey="tradeDate"
         label={{
           value: "Date",
           position: "insideBottom",

@@ -479,8 +479,8 @@ function getETFsColumns(options: ETFsOptions) {
       enableColumnFilter: true,
     },
     {
-      id: "category_group",
-      accessorKey: "category_group",
+      id: "categoryGroup",
+      accessorKey: "categoryGroup",
       header: ({ column }: { column: Column<ETFsRow, unknown> }) => (
         <DataTableColumnHeader column={column} title="Category Group" />
       ),
