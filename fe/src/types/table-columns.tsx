@@ -721,50 +721,50 @@ export function getPortfolioColumns({
         label: "Allocation %",
       },
     },
-    {
-      id: "geometricMean",
-      accessorKey: "geometricMean",
-      header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
-        <DataTableColumnHeader column={column} title="Geometric Mean" />
-      ),
-      cell: ({ cell }) => {
-        const value = cell.getValue<PortfolioItem["geometricMean"]>();
-        return value && <ColourValue value={value} min={20} max={30} />;
-      },
-      // Use ColorValue component to display the value with color coding
-      meta: {
-        label: "Geometric Mean",
-      },
-    },
-    {
-      id: "stdDev",
-      accessorKey: "stdDev",
-      header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
-        <DataTableColumnHeader column={column} title="Standard Deviation" />
-      ),
-      cell: ({ cell }) => {
-        const value = cell.getValue<PortfolioItem["stdDev"]>();
-        return (
-          value && <ColourValue value={value} min={20} max={30} invert={true} />
-        );
-      },
-      meta: {
-        label: "Standard Deviation",
-      },
-    },
-    {
-      id: "optimisedAllocation",
-      accessorKey: "optimisedAllocation",
-      header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
-        <DataTableColumnHeader column={column} title="Optimised Allocation %" />
-      ),
-      cell: ({ cell }) => {
-        const value = cell.getValue<PortfolioItem["optimisedAllocation"]>();
-        return value && <DynamicBar value={value} max={98} />;
-      },
-      meta: {
-        label: "Optimised Allocation %",
-      },
-    },
+    // {
+    //   id: "geometricMean",
+    //   accessorKey: "geometricMean",
+    //   header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
+    //     <DataTableColumnHeader column={column} title="Geometric Mean" />
+    //   ),
+    //   cell: ({ cell }) => {
+    //     const value = cell.getValue<PortfolioItem["geometricMean"]>();
+    //     return value && <ColourValue value={value} min={20} max={30} />;
+    //   },
+    //   // Use ColorValue component to display the value with color coding
+    //   meta: {
+    //     label: "Geometric Mean",
+    //   },
+    // },
+    // {
+    //   id: "stdDev",
+    //   accessorKey: "stdDev",
+    //   header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
+    //     <DataTableColumnHeader column={column} title="Standard Deviation" />
+    //   ),
+    //   cell: ({ cell }) => {
+    //     const value = cell.getValue<PortfolioItem["stdDev"]>();
+    //     return (
+    //       value && <ColourValue value={value} min={20} max={30} invert={true} />
+    //     );
+    //   },
+    //   meta: {
+    //     label: "Standard Deviation",
+    //   },
+    // },
+    // {
+    //   id: "optimisedAllocation",
+    //   accessorKey: "optimisedAllocation",
+    //   header: ({ column }: { column: Column<PortfolioItem, unknown> }) => (
+    //     <DataTableColumnHeader column={column} title="Optimised Allocation %" />
+    //   ),
+    //   cell: ({ cell }) => {
+    //     const value = cell.getValue<PortfolioItem["optimisedAllocation"]>();
+    //     return value && <DynamicBar value={value} max={98} />;
+    //   },
+    //   meta: {
+    //     label: "Optimised Allocation %",
+    //   },
+    // },
   ] as ColumnDef<PortfolioItem>[];
 }

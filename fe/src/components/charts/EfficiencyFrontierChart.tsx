@@ -6,7 +6,6 @@ import {
   CartesianGrid,
   Legend,
   Scatter,
-  Tooltip,
 } from "recharts";
 import { PortfolioAnalysisResult } from "../../types/interfaces";
 import { DEFAULT_COLOURS } from "@/types/colours";
@@ -19,10 +18,7 @@ export default function EfficiencyFrontierChart({
   comparePortfolios,
 }: {
   optimisedPortfolios: PortfolioAnalysisResult[];
-  comparePortfolios?: {
-    name: string;
-    data?: PortfolioAnalysisResult;
-  }[];
+  comparePortfolios?: PortfolioAnalysisResult[];
 }) {
   const stdDevs = optimisedPortfolios.map((p) => p.stdDev);
   const returns = optimisedPortfolios.map((p) => p.geometricMean);
@@ -122,21 +118,21 @@ export default function EfficiencyFrontierChart({
         {comparePortfolios &&
           comparePortfolios.length > 0 &&
           comparePortfolios.map((portfolio, idx) => {
-            if (portfolio.data && portfolio.data.geometricMean && portfolio.data.stdDev) {
+            if (portfolio && portfolio.geometricMean && portfolio.stdDev) {
               return (
                 <Scatter
                   key={portfolio.name}
                   name={portfolio.name}
-                  data={[portfolio.data]}
+                  data={[portfolio]}
                   fill={DEFAULT_COLOURS[idx % DEFAULT_COLOURS.length]}
                   stroke="#001f3f"
                   shape="circle"
+                  isAnimationActive={false}
                 />
               );
             }
             return null;
           })}
-        <Tooltip />
         <Legend
           verticalAlign="top"
           align="center"

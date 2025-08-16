@@ -6,7 +6,6 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   DEFAULT_OPTIMISATION_SETTINGS,
-  PortfolioAnalysisResult,
   OptimisationSettings,
   OptimisedValues,
   PortfolioItem,
@@ -19,7 +18,10 @@ import {
 } from "../hooks/custom-hooks";
 import {
   calculateAllocationPercentage,
-  calculateTotalPortfolioValue, generatePortfolioAnalysis, getPortfoliosSharpeRatio
+  calculateTotalPortfolioValue,
+  generatePortfolioAnalysis,
+  getPortfoliosSharpeRatio,
+  getSelectedOptimisedPortfolio,
 } from "../lib/analysis-functions";
 import Optimisation from "../components/Optimisation";
 import { AnalysisResults } from "../components/AnalysisResults";
@@ -71,57 +73,6 @@ const attachQuotesToPortfolio = (
       return item;
     }
   });
-};
-
-const attachOptimisationToPortfolio = (
-  portfolioWithQuotes: PortfolioItem[],
-  optimisationResults: PortfolioAnalysisResult[],
-  gamma: number
-) => {
-  if (!portfolioWithQuotes?.length || !optimisationResults?.length)
-    return portfolioWithQuotes || [];
-
-  try {
-    const selectedResult = optimisationResults[gamma];
-
-    if (!selectedResult?.weights) return portfolioWithQuotes;
-
-    const weightsMap = Object.fromEntries(
-      selectedResult.weights.map((w: any) => [w.symbol, w.valueProportion])
-    );
-
-    return portfolioWithQuotes.map((item) => ({
-      ...item,
-      optimisedAllocation:
-        Math.max(weightsMap[item.symbol] || 0, 0) * PERCENTAGE_MULTIPLIER,
-    }));
-  } catch (error) {
-    console.warn("Error attaching optimisation to portfolio:", error);
-    return portfolioWithQuotes;
-  }
-};
-
-const attachAnalysisToPortfolio = (
-  portfolioWithOptimisation: PortfolioItem[],
-  optimisationData: OptimisedValues | undefined
-) => {
-  if (!portfolioWithOptimisation?.length) return [];
-
-  try {
-    const stdDev = optimisationData?.stockStats?.stdDev ?? {};
-    const geometricMean = optimisationData?.stockStats?.geometricMean ?? {};
-    const arithmeticMean = optimisationData?.stockStats?.arithmeticMean ?? {};
-
-    return portfolioWithOptimisation.map((item) => ({
-      ...item,
-      stdDev: stdDev[item.symbol] ?? item.stdDev,
-      geometricMean: geometricMean[item.symbol] ?? item.geometricMean,
-      arithmeticMean: arithmeticMean[item.symbol] ?? item.arithmeticMean,
-    }));
-  } catch (error) {
-    console.warn("Error attaching analysis to portfolio:", error);
-    return portfolioWithOptimisation;
-  }
 };
 
 const extractUniqueSymbols = (portfolio: PortfolioItem[]): string[] => {
@@ -184,7 +135,6 @@ function MainApp() {
     stockStats = undefined,
     historicalData = undefined,
     timePeriod = undefined,
-    optimisationResults = [],
   } = optimisationData ?? {};
 
   const resetOptimisation = () => {
@@ -210,30 +160,13 @@ function MainApp() {
   const yourPortfolioAnalysis = useMemo(
     () =>
       generatePortfolioAnalysis(
+        "Your Portfolio",
         historicalData,
         stockStats,
         timePeriod,
         portfolioWithQuotes
       ),
     [historicalData, stockStats, timePeriod, portfolioWithQuotes]
-  );
-
-  // Attach optimised allocation to each item
-  const portfolioWithOptimisation = useMemo(
-    () =>
-      attachOptimisationToPortfolio(
-        portfolioWithQuotes,
-        optimisationResults,
-        gamma
-      ),
-    [portfolioWithQuotes, optimisationResults, gamma]
-  );
-
-  // Attach analysis stats to each item
-  const portfolioWithAnalysis = useMemo(
-    () =>
-      attachAnalysisToPortfolio(portfolioWithOptimisation, optimisationData),
-    [portfolioWithOptimisation, optimisationData]
   );
 
   const enhancedOptimisationData: OptimisedValues = useMemo(
@@ -243,6 +176,10 @@ function MainApp() {
         optimisationSettings.risklessBorrowingRate
       ) ?? ({} as OptimisedValues),
     [optimisationData, optimisationSettings.risklessBorrowingRate]
+  );
+
+  const selectedOptimisedPortfolio = getSelectedOptimisedPortfolio(
+    optimisationData?.optimisationResults[gamma]
   );
 
   const shouldShowAnalysis =
@@ -256,7 +193,7 @@ function MainApp() {
           Portfolio Analysis Tool
         </h1>
         <PortfolioDataTable
-          portfolio={portfolioWithAnalysis}
+          portfolio={portfolioWithQuotes}
           setPortfolio={setPortfolio}
         />
         {shouldShowOptimisation && optimisationComponent}
@@ -265,7 +202,10 @@ function MainApp() {
             <AnalysisResults
               gamma={gamma}
               setGamma={setGamma}
-              yourPortfolio={yourPortfolioAnalysis ?? {} as PortfolioAnalysisResult}
+              comparePortfolios={[
+                ...(selectedOptimisedPortfolio ? [selectedOptimisedPortfolio] : []),
+                ...(yourPortfolioAnalysis ? [yourPortfolioAnalysis] : []),
+              ]}
               optimisationData={enhancedOptimisationData}
             />
           </div>

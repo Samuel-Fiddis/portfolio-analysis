@@ -39,7 +39,7 @@ export default function Optimisation({
         onClick={() => refetchOptimisation()}
         disabled={isOptimising}
       >
-        {isOptimising ? "Processing..." : "🧠 Analyse and Optimise"}
+        {isOptimising ? "Processing..." : "🧠 Analyse Portfolio"}
       </Button>
       <Sheet>
         <Tooltip>

@@ -1,33 +1,29 @@
 import {
   BarChart,
   Bar,
-  Rectangle,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
 } from "recharts";
-import { PortfolioWeight } from "../../types/interfaces";
+import { PortfolioAnalysisResult, PortfolioWeight } from "../../types/interfaces";
 import { DEFAULT_COLOURS } from "../../types/colours";
 
 export default function AllocationsBarChart({
   allocations,
 }: {
-  allocations: {
-    portfolioName: string;
-    data: PortfolioWeight[];
-  }[];
+  allocations: PortfolioAnalysisResult[];
 }) {
   const allSymbols = Array.from(
-    new Set(allocations.flatMap((allocation) => allocation.data.map((item) => item.symbol)))
+    new Set(allocations.flatMap((allocation) => allocation.weights.map((item) => item.symbol)))
   );
 
   const data = allSymbols.map((symbol) => {
     const entry: Record<string, any> = { symbol };
     allocations.forEach((allocation) => {
-      const found = allocation.data.find((item) => item.symbol === symbol);
-      entry[allocation.portfolioName] = found
+      const found = allocation.weights.find((item) => item.symbol === symbol);
+      entry[allocation.name] = found
         ? Number((found.valueProportion * 100).toFixed(2))
         : 0;
     });
@@ -69,9 +65,9 @@ export default function AllocationsBarChart({
         />
         {allocations.map((allocation, idx) => (
           <Bar
-            key={allocation.portfolioName}
-            dataKey={allocation.portfolioName}
-            name={allocation.portfolioName}
+            key={allocation.name}
+            dataKey={allocation.name}
+            name={allocation.name}
             fill={DEFAULT_COLOURS[idx % DEFAULT_COLOURS.length]}
             isAnimationActive={false}
           />

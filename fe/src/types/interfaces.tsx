@@ -6,13 +6,9 @@ export interface PortfolioItem {
   currency: string;
   value: number;
   yourAllocation: number;
-  stdDev?: number;
-  arithmeticMean?: number;
-  geometricMean?: number;
   sharePrice?: number;
   sharePriceDate?: string;
   investmentDate?: string;
-  optimisedAllocation?: number;
 }
 
 export interface PortfolioWeight {
@@ -49,7 +45,7 @@ export interface DrawdownDetails {
 }
 
 export interface PortfolioAnalysisResult {
-  gamma?: number;
+  name: string;
   stdDev: number;
   arithmeticMean: number;
   geometricMean: number;

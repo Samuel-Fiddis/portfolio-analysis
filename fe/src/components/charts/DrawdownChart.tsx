@@ -8,32 +8,19 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import {
-  DrawdownData,
-  DrawdownDetails,
-} from "../../types/interfaces";
+import { PortfolioAnalysisResult } from "../../types/interfaces";
 import { DEFAULT_COLOURS } from "@/types/colours";
 
-
-interface DrawdownChartItem {
-  portfolioName: string;
-  drawdown: DrawdownData[];
-  maxDrawdown: DrawdownDetails;
-}
-
-type DrawdownChartProps = {
-  items: DrawdownChartItem[];
-};
-
-export default function DrawdownChart({ items }: DrawdownChartProps) {
-
+export default function DrawdownChart({
+  items,
+}: {
+  items: PortfolioAnalysisResult[];
+}) {
   const allSeries = items.map((item) => ({
     ...item,
     data: item.drawdown.map((d) => ({
       tradeDate: new Date(
-        String(d.tradeDate).length === 13
-          ? d.tradeDate
-          : d.tradeDate * 1000
+        String(d.tradeDate).length === 13 ? d.tradeDate : d.tradeDate * 1000
       )
         .toISOString()
         .slice(0, 10),
@@ -50,24 +37,25 @@ export default function DrawdownChart({ items }: DrawdownChartProps) {
     const entry: Record<string, any> = { tradeDate: date };
     allSeries.forEach((series) => {
       const found = series.data.find((d) => d.tradeDate === date);
-      entry[series.portfolioName] = found ? found.value : null;
+      entry[series.name] = found ? found.value : null;
     });
     return entry;
   });
 
   // Find min/max for Y axis
   const allValues = chartData.flatMap((row) =>
-    items.map((item) => row[item.portfolioName]).filter((v) => v !== null)
+    items.map((item) => row[item.name]).filter((v) => v !== null)
   );
   const minY = Math.min(...allValues, 0);
   const maxY = Math.max(...allValues, 0);
   const yAxisTickInterval = 5;
-  const domainMin = Math.floor((minY - 1) / yAxisTickInterval) * yAxisTickInterval;
+  const domainMin =
+    Math.floor((minY - 1) / yAxisTickInterval) * yAxisTickInterval;
   const domainMax = Math.ceil(maxY / yAxisTickInterval) * yAxisTickInterval;
   const ticks = Array.from(
     { length: Math.ceil((domainMax - domainMin) / yAxisTickInterval) + 1 },
     (_, i) => domainMin + i * yAxisTickInterval
-  ).filter(tick => tick >= minY - 1 && tick <= maxY);
+  ).filter((tick) => tick >= minY - 1 && tick <= maxY);
 
   return (
     <div className="overflow-x-auto">
@@ -117,34 +105,34 @@ export default function DrawdownChart({ items }: DrawdownChartProps) {
           <Tooltip />
           {allSeries.map((series, idx) => (
             <Area
-              key={series.portfolioName}
+              key={series.name}
               type="linear"
-              dataKey={series.portfolioName}
+              dataKey={series.name}
               stroke="#8884d8"
               fill={DEFAULT_COLOURS[idx % DEFAULT_COLOURS.length]}
               isAnimationActive={false}
-              name={series.portfolioName}
+              name={series.name}
             />
           ))}
         </AreaChart>
         <div className="flex flex-col gap-4">
           {allSeries.map((series) => (
             <div
-              key={series.portfolioName}
+              key={series.name}
               className={`bg-white border rounded p-4 min-w-[250px] shadow ${
-                series.portfolioName === allSeries[0].portfolioName
+                series.name === allSeries[0].name
                   ? "border-gray-300"
                   : "border-green-300"
               }`}
             >
               <h3
                 className={`font-bold mb-2 text-center ${
-                  series.portfolioName === allSeries[0].portfolioName
+                  series.name === allSeries[0].name
                     ? "text-gray-700"
                     : "text-green-700"
                 }`}
               >
-                {series.portfolioName} Max Drawdown
+                {series.name} Max Drawdown
               </h3>
               <div className="text-sm text-gray-700 text-center">
                 <div>

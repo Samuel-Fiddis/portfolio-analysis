@@ -137,6 +137,17 @@ export function getPortfoliosSharpeRatio(
   };
 }
 
+export function getSelectedOptimisedPortfolio(
+  optimisationResults: PortfolioAnalysisResult | undefined
+): PortfolioAnalysisResult | undefined {
+  if (!optimisationResults) return undefined;
+
+  return {
+    ...optimisationResults,
+    name: "Selected Portfolio",
+  };
+}
+
 export function getMaxSharpeRatioGamma(
   optimisationResults: PortfolioAnalysisResult[]
 ): number | undefined {
@@ -287,6 +298,7 @@ export function getMaxDrawdownDetails(
 }
 
 export const generatePortfolioAnalysis = (
+  name: string,
   historicalData: HistoricalData | undefined,
   stockStats: StockStats | undefined,
   timePeriod: PeriodType | undefined,
@@ -325,6 +337,7 @@ export const generatePortfolioAnalysis = (
     const maxDrawdown = getMaxDrawdownDetails(drawdown);
 
     return {
+      name,
       arithmeticMean,
       geometricMean,
       stdDev,

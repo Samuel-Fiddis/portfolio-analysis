@@ -13,17 +13,17 @@ const SELECTED_PORTFOLIO_NAME = "Selected Optimised Portfolio";
 export const AnalysisResults = ({
   gamma,
   setGamma,
-  yourPortfolio,
+  comparePortfolios,
   optimisationData,
 }: {
   gamma: number;
   setGamma: (gamma: number) => void;
-  yourPortfolio: PortfolioAnalysisResult;
+  comparePortfolios: PortfolioAnalysisResult[];
   optimisationData: OptimisedValues;
 }) => (
   <div className="flex flex-col w-full gap-8 items-center justify-center">
     <h2 className="text-2xl font-bold text-center">
-      Analysis and Optimisation Results
+      Analysis Results
     </h2>
     <OptimisationSlider
       gamma={gamma}
@@ -32,40 +32,18 @@ export const AnalysisResults = ({
     />
     <EfficiencyFrontierChart
       optimisedPortfolios={optimisationData?.optimisationResults || []}
-      comparePortfolios={[{name: SELECTED_PORTFOLIO_NAME, data: optimisationData?.optimisationResults[gamma]}, { name: YOUR_PORTFOLIO_NAME, data: yourPortfolio ? yourPortfolio : undefined }]}
+      comparePortfolios={comparePortfolios}
     />
     {optimisationData && (
       <DrawdownChart
-        items={[
-          {
-            portfolioName: SELECTED_PORTFOLIO_NAME,
-            drawdown: optimisationData?.optimisationResults[gamma]?.drawdown || [],
-            maxDrawdown: optimisationData?.optimisationResults[gamma]?.maxDrawdown
-          },
-          {
-            portfolioName: YOUR_PORTFOLIO_NAME,
-            drawdown: yourPortfolio?.drawdown || [],
-            maxDrawdown: yourPortfolio?.maxDrawdown || {
-              percent: 0,
-              startDate: "",
-              endDate: "",
-              bottomDate: ""
-            }
-          }
-        ]}
+        items={comparePortfolios}
       />
     )}
     {optimisationData && (
       <div className="flex flex-row w-full gap-8 items-stretch justify-center">
         <div className="flex-1">
           <AllocationsBarChart
-          allocations={[{
-            portfolioName: YOUR_PORTFOLIO_NAME,
-            data: yourPortfolio?.weights || []
-          },{
-            portfolioName: SELECTED_PORTFOLIO_NAME,
-            data: optimisationData?.optimisationResults[gamma]?.weights || []
-          }]}
+          allocations={comparePortfolios}
           />
         </div>
         <div className="flex-1">

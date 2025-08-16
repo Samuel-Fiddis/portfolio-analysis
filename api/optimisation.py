@@ -49,7 +49,7 @@ def optimise_portfolio(data, time_period):
         drawdown = get_portfolio_drawdown_percentage(data, weights)
         optimal_portfolios.append(
             {
-                "gamma": gamma_vals[i],
+                "name": f"Optimised {gamma_vals[i]}",
                 "std_dev": std_annualised,
                 "arithmetic_mean": arithmentic_mean,
                 "geometric_mean": geometric_mean,
