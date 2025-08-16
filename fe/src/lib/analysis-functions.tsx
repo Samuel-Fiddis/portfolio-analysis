@@ -13,7 +13,7 @@ import {
   PeriodType,
   PortfolioAnalysisResult,
 } from "../types/interfaces";
-import { PERCENTAGE_MULTIPLIER, SELECTED_PORTFOLIO_NAME } from "../app/page";
+import { PERCENTAGE_MULTIPLIER, SELECTED_PORTFOLIO_NAME } from "../types/constants";
 import _ from "lodash";
 import { parseISO, compareAsc, format } from "date-fns";
 
@@ -25,19 +25,19 @@ function adjustReturnForPeriod(
   switch (inputPeriod) {
     case "monthly":
       if (outputPeriod === "yearly")
-        return ((1 + returns / 100) ** 12 - 1) * 100;
+        return ((1 + returns / PERCENTAGE_MULTIPLIER) ** 12 - 1) * PERCENTAGE_MULTIPLIER;
       if (outputPeriod === "daily")
-        return ((1 + returns / 100) ** (1 / 22) - 1) * 100;
+        return ((1 + returns / PERCENTAGE_MULTIPLIER) ** (1 / 22) - 1) * PERCENTAGE_MULTIPLIER;
     case "yearly":
       if (outputPeriod === "monthly")
-        return ((1 + returns / 100) ** (1 / 12) - 1) * 100;
+        return ((1 + returns / PERCENTAGE_MULTIPLIER) ** (1 / 12) - 1) * PERCENTAGE_MULTIPLIER;
       if (outputPeriod === "daily")
-        return ((1 + returns / 100) ** (1 / 252) - 1) * 100;
+        return ((1 + returns / PERCENTAGE_MULTIPLIER) ** (1 / 252) - 1) * PERCENTAGE_MULTIPLIER;
     case "daily":
       if (outputPeriod === "monthly")
-        return ((1 + returns / 100) ** 22 - 1) * 100;
+        return ((1 + returns / PERCENTAGE_MULTIPLIER) ** 22 - 1) * PERCENTAGE_MULTIPLIER;
       if (outputPeriod === "yearly")
-        return ((1 + returns / 100) ** 252 - 1) * 100;
+        return ((1 + returns / PERCENTAGE_MULTIPLIER) ** 252 - 1) * PERCENTAGE_MULTIPLIER;
     default:
       throw new Error("Invalid period type");
   }
@@ -64,7 +64,7 @@ export function getPortfolioGeometricReturn(
       _(historicalData[item.symbol])
         .map(
           (point: HistoricalDataPoint) =>
-            (point.changePercent / 100 + 1) * item.valueProportion
+            (point.changePercent / PERCENTAGE_MULTIPLIER + 1) * item.valueProportion
         )
         .value()
     )
@@ -290,7 +290,7 @@ export function getMaxDrawdownDetails(
   );
 
   return {
-    percent: _.round(minDrawdown.value * 100, 4),
+    percent: _.round(minDrawdown.value * PERCENTAGE_MULTIPLIER, 4),
     startDate: new Date(startDate).toISOString(),
     endDate: new Date(recoveryPoint?.tradeDate).toISOString() ?? null,
     bottomDate: new Date(bottomDate).toISOString(),

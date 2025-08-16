@@ -8,7 +8,7 @@ import {
   Legend,
 } from "recharts";
 import { PortfolioAnalysisResult, PortfolioWeight } from "../../types/interfaces";
-import { DEFAULT_COLOURS } from "../../types/colours";
+import { DEFAULT_COLOURS, PERCENTAGE_MULTIPLIER } from "../../types/constants";
 
 export default function AllocationsBarChart({
   comparePortfolios,
@@ -24,7 +24,7 @@ export default function AllocationsBarChart({
     comparePortfolios.forEach((allocation) => {
       const found = allocation.weights.find((item) => item.symbol === symbol);
       entry[allocation.name] = found
-        ? Number((found.valueProportion * 100).toFixed(2))
+        ? Number((found.valueProportion * PERCENTAGE_MULTIPLIER).toFixed(2))
         : 0;
     });
     return entry;

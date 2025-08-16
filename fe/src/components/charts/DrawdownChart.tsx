@@ -9,7 +9,8 @@ import {
   Legend,
 } from "recharts";
 import { PortfolioAnalysisResult } from "../../types/interfaces";
-import { DEFAULT_COLOURS } from "@/types/colours";
+import { DEFAULT_COLOURS, PERCENTAGE_MULTIPLIER, ISO_DATE_LENGTH } from "@/types/constants";
+import { generateTicks } from "@/lib/chart-functions";
 
 export default function DrawdownChart({
   comparePortfolios,
@@ -23,8 +24,8 @@ export default function DrawdownChart({
         String(d.tradeDate).length === 13 ? d.tradeDate : d.tradeDate * 1000
       )
         .toISOString()
-        .slice(0, 10),
-      value: parseFloat((d.value * 100).toFixed(2)),
+        .slice(0, ISO_DATE_LENGTH),
+      value: parseFloat((d.value * PERCENTAGE_MULTIPLIER).toFixed(2)),
     })),
   }));
 
@@ -49,13 +50,9 @@ export default function DrawdownChart({
   const minY = Math.min(...allValues, 0);
   const maxY = Math.max(...allValues, 0);
   const yAxisTickInterval = 5;
-  const domainMin =
-    Math.floor((minY - 1) / yAxisTickInterval) * yAxisTickInterval;
+  const domainMin = Math.floor((minY) / yAxisTickInterval) * yAxisTickInterval;
   const domainMax = Math.ceil(maxY / yAxisTickInterval) * yAxisTickInterval;
-  const ticks = Array.from(
-    { length: Math.ceil((domainMax - domainMin) / yAxisTickInterval) + 1 },
-    (_, i) => domainMin + i * yAxisTickInterval
-  ).filter((tick) => tick >= minY - 1 && tick <= maxY);
+  const ticks = generateTicks(domainMin, domainMax, yAxisTickInterval);
 
   return (
     <div className="overflow-x-auto">
@@ -143,15 +140,15 @@ export default function DrawdownChart({
                 </div>
                 <div>
                   <span className="font-semibold">Start Date:</span>{" "}
-                  {series.maxDrawdown?.startDate?.slice(0, 10) || "Prior start"}
+                  {series.maxDrawdown?.startDate?.slice(0, ISO_DATE_LENGTH) || "Prior start"}
                 </div>
                 <div>
                   <span className="font-semibold">Bottom Date:</span>{" "}
-                  {series.maxDrawdown?.bottomDate?.slice(0, 10) || "N/A"}
+                  {series.maxDrawdown?.bottomDate?.slice(0, ISO_DATE_LENGTH) || "N/A"}
                 </div>
                 <div>
                   <span className="font-semibold">End Date:</span>{" "}
-                  {series.maxDrawdown?.endDate?.slice(0, 10) || "Ongoing"}
+                  {series.maxDrawdown?.endDate?.slice(0, ISO_DATE_LENGTH) || "Ongoing"}
                 </div>
               </div>
             </div>

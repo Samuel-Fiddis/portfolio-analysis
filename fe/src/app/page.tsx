@@ -25,11 +25,8 @@ import {
 } from "../lib/analysis-functions";
 import Optimisation from "../components/Optimisation";
 import { AnalysisResults } from "../components/AnalysisResults";
+import { ISO_DATE_LENGTH, YOUR_PORTFOLIO_NAME } from "@/types/constants";
 
-export const PERCENTAGE_MULTIPLIER = 100;
-const ISO_DATE_LENGTH = 10;
-const YOUR_PORTFOLIO_NAME = "Your Portfolio";
-export const SELECTED_PORTFOLIO_NAME = "Selected Optimised Portfolio";
 
 const calculateItemValue = (item: PortfolioItem, quote: PricePoint): number => {
   if (!item || !quote || typeof quote.price !== "number") return 0;

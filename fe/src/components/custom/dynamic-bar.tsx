@@ -1,3 +1,4 @@
+import { PERCENTAGE_MULTIPLIER } from "@/types/constants";
 import { useLayoutEffect, useRef, useState } from "react";
 
 interface DynamicBarProps {
@@ -20,7 +21,7 @@ export const DynamicBar: React.FC<DynamicBarProps> = ({
     const [spanWidth, setSpanWidth] = useState(0);
 
     // Calculate width percentage
-    const widthPercent = Math.max(0, Math.min(1, value / max)) * 100;
+    const widthPercent = Math.max(0, Math.min(1, value / max)) * PERCENTAGE_MULTIPLIER;
 
     // Measure span width after render
     useLayoutEffect(() => {

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 
 interface DialogWrapperProps extends React.ComponentProps<"div"> {
-  buttonText?: string;
+  buttonText: string;
   dialogTitle?: string;
   dialogDescription?: string;
 }
