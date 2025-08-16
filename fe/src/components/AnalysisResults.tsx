@@ -7,9 +7,6 @@ import { PortfolioAnalysisResult, OptimisedValues } from "../types/interfaces";
 import OptimisationSlider from "./OptimisationSlider";
 
 
-const YOUR_PORTFOLIO_NAME = "Your Portfolio";
-const SELECTED_PORTFOLIO_NAME = "Selected Optimised Portfolio";
-
 export const AnalysisResults = ({
   gamma,
   setGamma,

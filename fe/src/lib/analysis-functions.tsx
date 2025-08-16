@@ -13,7 +13,7 @@ import {
   PeriodType,
   PortfolioAnalysisResult,
 } from "../types/interfaces";
-import { PERCENTAGE_MULTIPLIER } from "../app/page";
+import { PERCENTAGE_MULTIPLIER, SELECTED_PORTFOLIO_NAME } from "../app/page";
 import _ from "lodash";
 import { parseISO, compareAsc, format } from "date-fns";
 
@@ -144,7 +144,7 @@ export function getSelectedOptimisedPortfolio(
 
   return {
     ...optimisationResults,
-    name: "Selected Portfolio",
+    name: SELECTED_PORTFOLIO_NAME,
   };
 }
 
