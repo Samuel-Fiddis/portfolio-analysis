@@ -28,6 +28,8 @@ import { AnalysisResults } from "../components/AnalysisResults";
 
 export const PERCENTAGE_MULTIPLIER = 100;
 const ISO_DATE_LENGTH = 10;
+const YOUR_PORTFOLIO_NAME = "Your Portfolio";
+export const SELECTED_PORTFOLIO_NAME = "Selected Optimised Portfolio";
 
 const calculateItemValue = (item: PortfolioItem, quote: PricePoint): number => {
   if (!item || !quote || typeof quote.price !== "number") return 0;
@@ -160,7 +162,7 @@ function MainApp() {
   const yourPortfolioAnalysis = useMemo(
     () =>
       generatePortfolioAnalysis(
-        "Your Portfolio",
+        YOUR_PORTFOLIO_NAME,
         historicalData,
         stockStats,
         timePeriod,
