@@ -12,11 +12,11 @@ import { PortfolioAnalysisResult } from "../../types/interfaces";
 import { DEFAULT_COLOURS } from "@/types/colours";
 
 export default function DrawdownChart({
-  items,
+  comparePortfolios,
 }: {
-  items: PortfolioAnalysisResult[];
+  comparePortfolios: PortfolioAnalysisResult[];
 }) {
-  const allSeries = items.map((item) => ({
+  const allSeries = comparePortfolios.map((item) => ({
     ...item,
     data: item.drawdown.map((d) => ({
       tradeDate: new Date(
@@ -44,7 +44,7 @@ export default function DrawdownChart({
 
   // Find min/max for Y axis
   const allValues = chartData.flatMap((row) =>
-    items.map((item) => row[item.name]).filter((v) => v !== null)
+    comparePortfolios.map((item) => row[item.name]).filter((v) => v !== null)
   );
   const minY = Math.min(...allValues, 0);
   const maxY = Math.max(...allValues, 0);
@@ -60,7 +60,7 @@ export default function DrawdownChart({
   return (
     <div className="overflow-x-auto">
       <p className="text-center font-semibold">Portfolio Drawdowns</p>
-      <div className="flex flex-row gap-8 items-start mb-4">
+      <div className="flex flex-row gap-8 comparePortfolios-start mb-4">
         <AreaChart
           width={1200}
           height={500}

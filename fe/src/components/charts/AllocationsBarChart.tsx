@@ -11,17 +11,17 @@ import { PortfolioAnalysisResult, PortfolioWeight } from "../../types/interfaces
 import { DEFAULT_COLOURS } from "../../types/colours";
 
 export default function AllocationsBarChart({
-  allocations,
+  comparePortfolios,
 }: {
-  allocations: PortfolioAnalysisResult[];
+  comparePortfolios: PortfolioAnalysisResult[];
 }) {
   const allSymbols = Array.from(
-    new Set(allocations.flatMap((allocation) => allocation.weights.map((item) => item.symbol)))
+    new Set(comparePortfolios.flatMap((allocation) => allocation.weights.map((item) => item.symbol)))
   );
 
   const data = allSymbols.map((symbol) => {
     const entry: Record<string, any> = { symbol };
-    allocations.forEach((allocation) => {
+    comparePortfolios.forEach((allocation) => {
       const found = allocation.weights.find((item) => item.symbol === symbol);
       entry[allocation.name] = found
         ? Number((found.valueProportion * 100).toFixed(2))
@@ -63,7 +63,7 @@ export default function AllocationsBarChart({
         <Legend
           formatter={(value) => <span style={{ color: "black" }}>{value}</span>}
         />
-        {allocations.map((allocation, idx) => (
+        {comparePortfolios.map((allocation, idx) => (
           <Bar
             key={allocation.name}
             dataKey={allocation.name}

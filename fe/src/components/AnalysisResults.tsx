@@ -6,7 +6,6 @@ import EfficiencyFrontierChart from "./charts/EfficiencyFrontierChart";
 import { PortfolioAnalysisResult, OptimisedValues } from "../types/interfaces";
 import OptimisationSlider from "./OptimisationSlider";
 
-
 export const AnalysisResults = ({
   gamma,
   setGamma,
@@ -19,9 +18,7 @@ export const AnalysisResults = ({
   optimisationData: OptimisedValues;
 }) => (
   <div className="flex flex-col w-full gap-8 items-center justify-center">
-    <h2 className="text-2xl font-bold text-center">
-      Analysis Results
-    </h2>
+    <h2 className="text-2xl font-bold text-center">Analysis Results</h2>
     <OptimisationSlider
       gamma={gamma}
       setGamma={setGamma}
@@ -31,24 +28,16 @@ export const AnalysisResults = ({
       optimisedPortfolios={optimisationData?.optimisationResults || []}
       comparePortfolios={comparePortfolios}
     />
-    {optimisationData && (
-      <DrawdownChart
-        items={comparePortfolios}
-      />
-    )}
-    {optimisationData && (
-      <div className="flex flex-row w-full gap-8 items-stretch justify-center">
-        <div className="flex-1">
-          <AllocationsBarChart
-          allocations={comparePortfolios}
-          />
-        </div>
-        <div className="flex-1">
-          <CorrelationHeatmap
-            corrMatrix={optimisationData?.stockStats.corrMatrix}
-          />
-        </div>
+    <DrawdownChart comparePortfolios={comparePortfolios} />
+    <div className="flex flex-row w-full gap-8 items-stretch justify-center">
+      <div className="flex-1">
+        <AllocationsBarChart comparePortfolios={comparePortfolios} />
       </div>
-    )}
+      <div className="flex-1">
+        <CorrelationHeatmap
+          corrMatrix={optimisationData?.stockStats.corrMatrix}
+        />
+      </div>
+    </div>
   </div>
 );

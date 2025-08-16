@@ -23,7 +23,6 @@ export default function EfficiencyFrontierChart({
   const stdDevs = optimisedPortfolios.map((p) => p.stdDev);
   const returns = optimisedPortfolios.map((p) => p.geometricMean);
 
-  // Calculate min/max and range for each axis
   const minStdDev = Math.min(...stdDevs);
   const maxStdDev = Math.max(...stdDevs);
   const stdDevRange = maxStdDev - minStdDev;
