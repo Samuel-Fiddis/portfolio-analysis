@@ -11,50 +11,63 @@ import {
 import {
   DrawdownData,
   DrawdownDetails,
-  PortfolioAnalysisResult,
 } from "../../types/interfaces";
+import { DEFAULT_COLOURS } from "@/types/colours";
 
-export default function DrawdownChart({
-  drawdownData,
-  maxDrawdown,
-  yourPortfolio,
-}: {
-  drawdownData: DrawdownData[];
+
+interface DrawdownChartItem {
+  portfolioName: string;
+  drawdown: DrawdownData[];
   maxDrawdown: DrawdownDetails;
-  yourPortfolio: PortfolioAnalysisResult | null;
-}) {
-  const data = drawdownData.map((item) => ({
-    tradeDate: new Date(
-      String(item.tradeDate).length === 13
-        ? item.tradeDate
-        : item.tradeDate * 1000
-    )
-      .toISOString()
-      .slice(0, 10),
-    value: parseFloat((item.value * 100).toFixed(2)),
+}
+
+type DrawdownChartProps = {
+  items: DrawdownChartItem[];
+};
+
+export default function DrawdownChart({ items }: DrawdownChartProps) {
+
+  const allSeries = items.map((item) => ({
+    ...item,
+    data: item.drawdown.map((d) => ({
+      tradeDate: new Date(
+        String(d.tradeDate).length === 13
+          ? d.tradeDate
+          : d.tradeDate * 1000
+      )
+        .toISOString()
+        .slice(0, 10),
+      value: parseFloat((d.value * 100).toFixed(2)),
+    })),
   }));
 
-  const yourPortfolioDrawdown = yourPortfolio?.drawdown.map((item) => ({
-    tradeDate: new Date(
-      String(item.tradeDate).length === 13
-        ? item.tradeDate
-        : item.tradeDate * 1000
-    )
-      .toISOString()
-      .slice(0, 10),
-    value: item.value || 0,
-  }));
+  const allDates = Array.from(
+    new Set(allSeries.flatMap((s) => s.data.map((d) => d.tradeDate)))
+  ).sort();
 
-  const yourPortfolioMaxDrawdown = yourPortfolio?.maxDrawdown;
+  // Merge all series into one data array for AreaChart
+  const chartData = allDates.map((date) => {
+    const entry: Record<string, any> = { tradeDate: date };
+    allSeries.forEach((series) => {
+      const found = series.data.find((d) => d.tradeDate === date);
+      entry[series.portfolioName] = found ? found.value : null;
+    });
+    return entry;
+  });
 
-  const allValues = [
-    ...data.map((d) => d.value),
-    ...(yourPortfolioDrawdown ? yourPortfolioDrawdown.map((d) => d.value) : []),
-  ];
-  const minY = Math.min(...allValues, 0); // 0 as fallback
+  // Find min/max for Y axis
+  const allValues = chartData.flatMap((row) =>
+    items.map((item) => row[item.portfolioName]).filter((v) => v !== null)
+  );
+  const minY = Math.min(...allValues, 0);
   const maxY = Math.max(...allValues, 0);
-
   const yAxisTickInterval = 5;
+  const domainMin = Math.floor((minY - 1) / yAxisTickInterval) * yAxisTickInterval;
+  const domainMax = Math.ceil(maxY / yAxisTickInterval) * yAxisTickInterval;
+  const ticks = Array.from(
+    { length: Math.ceil((domainMax - domainMin) / yAxisTickInterval) + 1 },
+    (_, i) => domainMin + i * yAxisTickInterval
+  ).filter(tick => tick >= minY - 1 && tick <= maxY);
 
   return (
     <div className="overflow-x-auto">
@@ -63,7 +76,7 @@ export default function DrawdownChart({
         <AreaChart
           width={1200}
           height={500}
-          data={data}
+          data={chartData}
           margin={{
             top: 0,
             right: 0,
@@ -84,17 +97,7 @@ export default function DrawdownChart({
           <YAxis
             type="number"
             domain={[minY - 1, maxY]}
-            ticks={Array.from(
-              {
-                length:
-                  Math.ceil(
-                    (Math.ceil(maxY / yAxisTickInterval) * yAxisTickInterval -
-                      Math.floor((minY - 1) / yAxisTickInterval) * yAxisTickInterval) /
-                      yAxisTickInterval
-                  ) + 1,
-              },
-              (_, i) => Math.floor((minY - 1) / yAxisTickInterval) * yAxisTickInterval + i * yAxisTickInterval
-            )}
+            ticks={ticks}
             label={{
               value: "Drawdown (%)",
               angle: -90,
@@ -112,84 +115,61 @@ export default function DrawdownChart({
             )}
           />
           <Tooltip />
-          <Area
-            type="linear"
-            dataKey="value"
-            stroke="#8884d8"
-            fill="#ff5555"
-            isAnimationActive={false}
-            name="Selected Optimised Portfolio"
-          />
-          {yourPortfolio &&
-            yourPortfolioDrawdown &&
-            yourPortfolioDrawdown?.length > 0 && (
-              <Area
-                type="linear"
-                dataKey="value"
-                data={yourPortfolioDrawdown}
-                stroke="#22c55e"
-                fill="#bbf7d0"
-                isAnimationActive={false}
-                name="Your Portfolio"
-              />
-            )}
+          {allSeries.map((series, idx) => (
+            <Area
+              key={series.portfolioName}
+              type="linear"
+              dataKey={series.portfolioName}
+              stroke="#8884d8"
+              fill={DEFAULT_COLOURS[idx % DEFAULT_COLOURS.length]}
+              isAnimationActive={false}
+              name={series.portfolioName}
+            />
+          ))}
         </AreaChart>
         <div className="flex flex-col gap-4">
-          <div className="bg-white border border-gray-300 rounded p-4 min-w-[250px] shadow">
-            <h3 className="font-bold mb-2 text-center text-gray-700">
-              Optimised Portfolio Max Drawdown
-            </h3>
-            <div className="text-sm text-gray-700 text-center">
-              <div>
-                <span className="font-semibold">Percent:</span>{" "}
-                {maxDrawdown?.percent !== undefined
-                  ? `${maxDrawdown.percent.toFixed(2)}%`
-                  : "N/A"}
-              </div>
-              <div>
-                <span className="font-semibold">Start Date:</span>{" "}
-                {maxDrawdown?.startDate?.slice(0, 10) || "Prior start"}
-              </div>
-              <div>
-                <span className="font-semibold">Bottom Date:</span>{" "}
-                {maxDrawdown?.bottomDate?.slice(0, 10) || "N/A"}
-              </div>
-              <div>
-                <span className="font-semibold">End Date:</span>{" "}
-                {maxDrawdown?.endDate?.slice(0, 10) || "Ongoing"}
-              </div>
-            </div>
-          </div>
-          {yourPortfolioMaxDrawdown && yourPortfolioMaxDrawdown.percent < 0 && (
-            <div className="bg-white border border-green-300 rounded p-4 min-w-[250px] shadow">
-              <h3 className="font-bold mb-2 text-center text-green-700">
-                Your Portfolio Max Drawdown
+          {allSeries.map((series) => (
+            <div
+              key={series.portfolioName}
+              className={`bg-white border rounded p-4 min-w-[250px] shadow ${
+                series.portfolioName === allSeries[0].portfolioName
+                  ? "border-gray-300"
+                  : "border-green-300"
+              }`}
+            >
+              <h3
+                className={`font-bold mb-2 text-center ${
+                  series.portfolioName === allSeries[0].portfolioName
+                    ? "text-gray-700"
+                    : "text-green-700"
+                }`}
+              >
+                {series.portfolioName} Max Drawdown
               </h3>
               <div className="text-sm text-gray-700 text-center">
                 <div>
                   <span className="font-semibold">Percent:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.percent !== undefined
-                    ? `${yourPortfolioMaxDrawdown.percent.toFixed(2)}%`
+                  {series.maxDrawdown?.percent !== undefined
+                    ? `${series.maxDrawdown.percent.toFixed(2)}%`
                     : "N/A"}
                 </div>
                 <div>
                   <span className="font-semibold">Start Date:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.startDate?.slice(0, 10) ||
-                    "Prior start"}
+                  {series.maxDrawdown?.startDate?.slice(0, 10) || "Prior start"}
                 </div>
                 <div>
                   <span className="font-semibold">Bottom Date:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.bottomDate?.slice(0, 10) || "N/A"}
+                  {series.maxDrawdown?.bottomDate?.slice(0, 10) || "N/A"}
                 </div>
                 <div>
                   <span className="font-semibold">End Date:</span>{" "}
-                  {yourPortfolioMaxDrawdown?.endDate?.slice(0, 10) || "Ongoing"}
+                  {series.maxDrawdown?.endDate?.slice(0, 10) || "Ongoing"}
                 </div>
               </div>
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
   );
-};
+}

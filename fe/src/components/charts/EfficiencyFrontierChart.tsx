@@ -9,18 +9,20 @@ import {
   Tooltip,
 } from "recharts";
 import { PortfolioAnalysisResult } from "../../types/interfaces";
+import { DEFAULT_COLOURS } from "@/types/colours";
 
 const xBoarderBuffer = 0.2;
 const yBoarderBuffer = 0.2;
 
 export default function EfficiencyFrontierChart({
   optimisedPortfolios,
-  yourPortfolio,
-  selectedPortfolio,
+  comparePortfolios,
 }: {
   optimisedPortfolios: PortfolioAnalysisResult[];
-  selectedPortfolio?: PortfolioAnalysisResult;
-  yourPortfolio?: PortfolioAnalysisResult | null;
+  comparePortfolios?: {
+    name: string;
+    data?: PortfolioAnalysisResult;
+  }[];
 }) {
   const stdDevs = optimisedPortfolios.map((p) => p.stdDev);
   const returns = optimisedPortfolios.map((p) => p.geometricMean);
@@ -57,16 +59,21 @@ export default function EfficiencyFrontierChart({
           domain={[() => minStdDev - xBuffer, () => maxStdDev + xBuffer]}
           tickFormatter={(value) => value.toFixed(2)}
           ticks={Array.from(
-              {
-                length:
-                  Math.ceil(
-                    (Math.ceil(maxStdDev / xAsixTickInterval) * xAsixTickInterval -
-                      Math.floor((minStdDev - 1) / xAsixTickInterval) * xAsixTickInterval) /
-                      xAsixTickInterval
-                  ) + 1,
-              },
-              (_, i) => Math.floor((minStdDev - 1) / xAsixTickInterval) * xAsixTickInterval + i * xAsixTickInterval
-            )}
+            {
+              length:
+                Math.ceil(
+                  (Math.ceil(maxStdDev / xAsixTickInterval) *
+                    xAsixTickInterval -
+                    Math.floor((minStdDev - 1) / xAsixTickInterval) *
+                      xAsixTickInterval) /
+                    xAsixTickInterval
+                ) + 1,
+            },
+            (_, i) =>
+              Math.floor((minStdDev - 1) / xAsixTickInterval) *
+                xAsixTickInterval +
+              i * xAsixTickInterval
+          )}
           label={{
             value: "Standard Deviation (Risk %)",
             position: "insideBottom",
@@ -80,16 +87,21 @@ export default function EfficiencyFrontierChart({
           domain={[() => minReturn - yBuffer, () => maxReturn + yBuffer]}
           tickFormatter={(value) => value.toFixed(2)}
           ticks={Array.from(
-              {
-                length:
-                  Math.ceil(
-                    (Math.ceil(maxReturn / yAxisTickInterval) * yAxisTickInterval -
-                      Math.floor((minReturn - 1) / yAxisTickInterval) * yAxisTickInterval) /
-                      yAxisTickInterval
-                  ) + 1,
-              },
-              (_, i) => Math.floor((minReturn - 1) / yAxisTickInterval) * yAxisTickInterval + i * yAxisTickInterval
-            )}
+            {
+              length:
+                Math.ceil(
+                  (Math.ceil(maxReturn / yAxisTickInterval) *
+                    yAxisTickInterval -
+                    Math.floor((minReturn - 1) / yAxisTickInterval) *
+                      yAxisTickInterval) /
+                    yAxisTickInterval
+                ) + 1,
+            },
+            (_, i) =>
+              Math.floor((minReturn - 1) / yAxisTickInterval) *
+                yAxisTickInterval +
+              i * yAxisTickInterval
+          )}
           label={{
             value: "Annualised Return (%)",
             angle: -90,
@@ -107,27 +119,23 @@ export default function EfficiencyFrontierChart({
           stroke="#288cfa"
           isAnimationActive={false}
         />
-        {selectedPortfolio && (
-          <Scatter
-            name="Selected Optimised Portfolio"
-            data={[selectedPortfolio]}
-            fill="#66A3FF"
-            stroke="#001f3f"
-            shape="circle"
-            isAnimationActive={false}
-          />
-        )}
-        {yourPortfolio &&
-          yourPortfolio.geometricMean &&
-          yourPortfolio.stdDev && (
-            <Scatter
-              name="Your Portfolio"
-              data={[yourPortfolio]}
-              fill="#8884d8"
-              stroke="#001f3f"
-              shape="circle"
-            />
-          )}
+        {comparePortfolios &&
+          comparePortfolios.length > 0 &&
+          comparePortfolios.map((portfolio, idx) => {
+            if (portfolio.data && portfolio.data.geometricMean && portfolio.data.stdDev) {
+              return (
+                <Scatter
+                  key={portfolio.name}
+                  name={portfolio.name}
+                  data={[portfolio.data]}
+                  fill={DEFAULT_COLOURS[idx % DEFAULT_COLOURS.length]}
+                  stroke="#001f3f"
+                  shape="circle"
+                />
+              );
+            }
+            return null;
+          })}
         <Tooltip />
         <Legend
           verticalAlign="top"

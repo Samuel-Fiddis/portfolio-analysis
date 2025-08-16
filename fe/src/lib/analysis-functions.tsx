@@ -239,7 +239,7 @@ export function getPortfolioDrawdownSeries(
   let runningMax = 0;
   const drawdowns = cumulativeReturns.map((value: number) => {
     runningMax = Math.max(runningMax, value);
-    return runningMax === 0 ? 0 : ((value - runningMax) / runningMax) * 100;
+    return runningMax === 0 ? 0 : ((value - runningMax) / runningMax);
   });
 
   return _.zipWith(allDates, drawdowns, (tradeDate: string, value: number) => ({
@@ -279,7 +279,7 @@ export function getMaxDrawdownDetails(
   );
 
   return {
-    percent: _.round(minDrawdown.value, 4),
+    percent: _.round(minDrawdown.value * 100, 4),
     startDate: new Date(startDate).toISOString(),
     endDate: new Date(recoveryPoint?.tradeDate).toISOString() ?? null,
     bottomDate: new Date(bottomDate).toISOString(),

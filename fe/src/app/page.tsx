@@ -207,7 +207,7 @@ function MainApp() {
   );
 
   // Calculate your portfolio metrics
-  const yourPortfolio = useMemo(
+  const yourPortfolioAnalysis = useMemo(
     () =>
       generatePortfolioAnalysis(
         historicalData,
@@ -265,7 +265,7 @@ function MainApp() {
             <AnalysisResults
               gamma={gamma}
               setGamma={setGamma}
-              yourPortfolio={yourPortfolio}
+              yourPortfolio={yourPortfolioAnalysis ?? {} as PortfolioAnalysisResult}
               optimisationData={enhancedOptimisationData}
             />
           </div>

@@ -9,20 +9,30 @@ import {
   Legend,
 } from "recharts";
 import { PortfolioWeight } from "../../types/interfaces";
+import { DEFAULT_COLOURS } from "../../types/colours";
 
 export default function AllocationsBarChart({
-  optimisedAllocation,
-  yourAllocation,
+  allocations,
 }: {
-  optimisedAllocation: PortfolioWeight[];
-  yourAllocation?: PortfolioWeight[];
+  allocations: {
+    portfolioName: string;
+    data: PortfolioWeight[];
+  }[];
 }) {
-  // Prepare data for the chart
-  const data = optimisedAllocation.map((item) => ({
-    symbol: item.symbol,
-    optimisedValue: (item.valueProportion * 100).toFixed(2),
-    yourValue: ((yourAllocation?.find((a) => a.symbol === item.symbol)?.valueProportion ?? 0) * 100).toFixed(2),
-  }));
+  const allSymbols = Array.from(
+    new Set(allocations.flatMap((allocation) => allocation.data.map((item) => item.symbol)))
+  );
+
+  const data = allSymbols.map((symbol) => {
+    const entry: Record<string, any> = { symbol };
+    allocations.forEach((allocation) => {
+      const found = allocation.data.find((item) => item.symbol === symbol);
+      entry[allocation.portfolioName] = found
+        ? Number((found.valueProportion * 100).toFixed(2))
+        : 0;
+    });
+    return entry;
+  });
 
   return (
     <div className="overflow-x-auto">
@@ -57,20 +67,15 @@ export default function AllocationsBarChart({
         <Legend
           formatter={(value) => <span style={{ color: "black" }}>{value}</span>}
         />
-        <Bar
-          dataKey="optimisedValue"
-          name="Selected Optimised Portfolio"
-          fill="#66A3FF"
-          activeBar={<Rectangle fill="pink" stroke="blue" />}
-          isAnimationActive={false}
-        />
-        <Bar
-          dataKey="yourValue"
-          name="Your Portfolio"
-          fill="#8884d8"
-          activeBar={<Rectangle fill="gold" stroke="purple" />}
-          isAnimationActive={false}
-        />
+        {allocations.map((allocation, idx) => (
+          <Bar
+            key={allocation.portfolioName}
+            dataKey={allocation.portfolioName}
+            name={allocation.portfolioName}
+            fill={DEFAULT_COLOURS[idx % DEFAULT_COLOURS.length]}
+            isAnimationActive={false}
+          />
+        ))}
       </BarChart>
     </div>
   );
