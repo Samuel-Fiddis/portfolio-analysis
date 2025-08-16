@@ -53,8 +53,9 @@ def initialize_financial_data():
     try:
         equities = fd.Equities()
         etfs = fd.ETFs()
+        cryptos = fd.Cryptos()
         log.info("Initialised financial data")
-        return equities, etfs
+        return equities, etfs, cryptos
     except Exception as e:
         log.error(f"Failed to initialize financial data: {e}")
-        return None, None
+        return None, None, None

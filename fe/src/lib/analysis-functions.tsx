@@ -271,6 +271,8 @@ export function getMaxDrawdownDetails(
     };
   }
 
+  console.log(drawdown);
+
   const minDrawdown = _.minBy(drawdown, "value");
   const bottomIdx = _.findIndex(drawdown, { value: minDrawdown.value });
   const bottomDate = drawdown[bottomIdx].tradeDate;
@@ -289,10 +291,12 @@ export function getMaxDrawdownDetails(
     (point: DrawdownData) => point.value >= 0
   );
 
+  console.log(recoveryPoint);
+
   return {
     percent: _.round(minDrawdown.value * PERCENTAGE_MULTIPLIER, 4),
     startDate: new Date(startDate).toISOString(),
-    endDate: new Date(recoveryPoint?.tradeDate).toISOString() ?? null,
+    endDate: recoveryPoint ? new Date(recoveryPoint?.tradeDate).toISOString() : null,
     bottomDate: new Date(bottomDate).toISOString(),
   };
 }
@@ -307,7 +311,6 @@ export const generatePortfolioAnalysis = (
   if (!historicalData || !stockStats || !timePeriod || !portfolio?.length)
     return null;
 
-  try {
     const weights: PortfolioWeight[] = portfolio
       .filter(
         (item) => item.yourAllocation !== undefined && item.yourAllocation !== 0
@@ -345,8 +348,5 @@ export const generatePortfolioAnalysis = (
       drawdown,
       maxDrawdown,
     };
-  } catch (error) {
-    console.warn("Error creating portfolio result:", error);
-    return null;
-  }
+  
 };

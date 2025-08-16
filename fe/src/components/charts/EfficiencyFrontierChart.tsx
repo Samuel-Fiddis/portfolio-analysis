@@ -35,9 +35,6 @@ export default function EfficiencyFrontierChart({
   const xBuffer = stdDevRange * xBoarderBuffer;
   const yBuffer = returnRange * yBoarderBuffer;
 
-  console.log(maxReturn);
-  console.log(minReturn);
-
   const fontSize = 14;
   const yAxisTickInterval = 2;
   const xAxisTickInterval = 2;

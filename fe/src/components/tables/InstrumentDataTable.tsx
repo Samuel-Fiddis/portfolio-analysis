@@ -42,7 +42,7 @@ export default function InstrumentDataTable({
 
   const debouncedQueryValues = useDebounce(searcyQueryValues, 500);
 
-  const instrumentTypes: InstrumentType[] = ["Equities", "ETFs"];
+  const instrumentTypes: InstrumentType[] = ["Equities", "ETFs", "Cryptos"];
   const [selectedType, setSelectedType] = useState<InstrumentType>("Equities");
 
   const {

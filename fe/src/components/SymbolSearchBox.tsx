@@ -42,7 +42,7 @@ export default function SymbolSearchBox({
   return (
     <div className="w-1/2 relative">
       <Input
-        placeholder="Search for a stock/ETF..."
+        placeholder="Search Stock/ETF/Crypto..."
         value={symbolSearchValue}
         onChange={handleInputChange}
         onFocus={() => setIsFocused(true)}

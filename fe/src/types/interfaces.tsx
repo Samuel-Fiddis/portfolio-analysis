@@ -40,7 +40,7 @@ export interface DrawdownData {
 export interface DrawdownDetails {
   percent: number;
   startDate: string;
-  endDate: string;
+  endDate: string | null;
   bottomDate: string;
 }
 
@@ -60,7 +60,7 @@ export interface CurrentPrice {
   timestamp: string;
 }
 
-export type InstrumentType = "Equities" | "ETFs";
+export type InstrumentType = "Equities" | "ETFs" | "Cryptos";
 
 export interface InstrumentRow {
   symbol: string;
@@ -95,6 +95,10 @@ export interface ETFsRow extends InstrumentRow {
   family: string;
 }
 
+export interface CryptoRow extends InstrumentRow {
+  cryptocurrency: string;
+}
+
 export interface EquitiesOptions {
   currency?: string[];
   sector?: string[];
@@ -108,6 +112,10 @@ export interface ETFsOptions {
   category?: string[];
   family?: string[];
   exchange?: string[];
+}
+
+export interface CryptoOptions {
+  currency?: string[];
 }
 
 export interface PricePoint {

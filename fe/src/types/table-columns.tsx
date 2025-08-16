@@ -7,6 +7,8 @@ import type { Column, ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import {
+  CryptoOptions,
+  CryptoRow,
   EquitiesOptions,
   EquitiesRow,
   ETFsOptions,
@@ -17,7 +19,6 @@ import {
 import { PortfolioItem } from "./interfaces";
 import React, { useState, useEffect } from "react";
 import { DynamicBar } from "@/components/custom/dynamic-bar";
-import { ColourValue } from "@/components/custom/colour-value";
 
 import { Input } from "@/components/ui/input";
 
@@ -35,9 +36,136 @@ export function getTableColumns<T extends InstrumentRow>({
       return getEquitiesColumns(options) as ColumnDef<T>[];
     case "ETFs":
       return getETFsColumns(options) as ColumnDef<T>[];
+    case "Cryptos":
+      return getCryptosColumns(options) as ColumnDef<T>[];
     default:
       return [];
   }
+}
+
+function getCryptosColumns(options: CryptoOptions) {
+ return [
+      {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      size: 32,
+      enableSorting: false,
+      enableHiding: false,
+    },
+       {
+      id: "symbol",
+      accessorKey: "symbol",
+      header: ({ column }: { column: Column<EquitiesRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Symbol" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<EquitiesRow["symbol"]>()}</div>,
+      meta: {
+        label: "Symbol",
+        placeholder: "Search symbols...",
+        variant: "text",
+        icon: Text,
+      },
+      enableColumnFilter: true,
+      enableHiding: false,
+    },
+    {
+      id: "instrumentType",
+      accessorKey: "instrumentType",
+      header: ({ column }: { column: Column<ETFsRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Instrument Type" />
+      ),
+      cell: ({ cell }) => (
+        <div>{cell.getValue<ETFsRow["instrumentType"]>()}</div>
+      ),
+      meta: {
+        label: "Instrument Type",
+      },
+    },
+      {
+      id: "exchange",
+      accessorKey: "exchange",
+      header: ({ column }: { column: Column<CryptoRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Exchange" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<CryptoRow["exchange"]>()}</div>,
+      meta: {
+        label: "Exchange",
+        variant: "multiSelect",
+        icon: CircleDashed,
+      },
+    },
+    {
+      id: "name",
+      accessorKey: "name",
+      header: ({ column }: { column: Column<CryptoRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Name" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<CryptoRow["name"]>()}</div>,
+      meta: {
+        label: "Name",
+      },
+    },
+    {
+      id: "summary",
+      accessorKey: "summary",
+      header: ({ column }: { column: Column<CryptoRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Summary" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<CryptoRow["summary"]>()}</div>,
+      meta: {
+        label: "Summary",
+      },
+    },
+    {
+      id: "cryptocurrency",
+      accessorKey: "cryptocurrency",
+      header: ({ column }: { column: Column<CryptoRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Crypto Currency" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<CryptoRow["cryptocurrency"]>()}</div>,
+      meta: {
+        label: "Crypto Currency",
+      },
+    },
+    {
+      id: "currency",
+      accessorKey: "currency",
+      header: ({ column }: { column: Column<CryptoRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Currency" />
+      ),
+      cell: ({ cell }) => <div>{cell.getValue<CryptoRow["currency"]>()}</div>,
+      meta: {
+        label: "Currency",
+        variant: "multiSelect",
+        options:
+          options?.currency &&
+          options?.currency.map((value: String) => {
+            return {
+              label: value,
+              value: value,
+            };
+          }),
+        icon: DollarSign,
+      },
+      enableColumnFilter: true,
+    },
+ ] as ColumnDef<EquitiesRow>[]
 }
 
 function getEquitiesColumns(options: EquitiesOptions) {
