@@ -39,18 +39,17 @@ engine = initialize_engine()
 
 API_KEY = os.getenv("FMP_API_KEY")
 
-EQUITIES, ETFS, CRYPTO = None, None, None
-while any(x is None for x in (EQUITIES, ETFS, CRYPTO)):
-    EQUITIES, ETFS, CRYPTO = initialize_financial_data()
-    if any(x is None for x in (EQUITIES, ETFS, CRYPTO)):
+EQUITIES, ETFS, CRYPTO, FUNDS = None, None, None, None
+while any(x is None for x in (EQUITIES, ETFS, CRYPTO, FUNDS)):
+    EQUITIES, ETFS, CRYPTO, FUNDS = initialize_financial_data()
+    if any(x is None for x in (EQUITIES, ETFS, CRYPTO, FUNDS)):
         sleep(1)
-
-log.info(CRYPTO.show_options())
 
 INSTRUMENT_NAME_MAPPING = {
     "Equities": "Equity",
     "ETFs": "ETF",
     "Cryptos": "Crypto",
+    "Funds": "Fund",
 }
 
 StringList = Union[str, List[str]]
@@ -149,9 +148,11 @@ async def search_instruments(search_values: SearchOptions):
         return search_instruments_helper(search_values, [ETFS])
     elif instrument_type == "Cryptos":
         return search_instruments_helper(search_values, [CRYPTO])
+    elif instrument_type == "Funds":
+        return search_instruments_helper(search_values, [FUNDS])
     else:
         # Search both and merge results
-        return search_instruments_helper(search_values, [EQUITIES, ETFS, CRYPTO])
+        return search_instruments_helper(search_values, [EQUITIES, ETFS, CRYPTO, FUNDS])
 
 
 def search_instruments_helper(search_values, DBs):

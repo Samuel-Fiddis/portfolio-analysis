@@ -108,17 +108,17 @@ export function getPortfolioStandardDeviation(
   return Math.sqrt(variance);
 }
 
-function getSharpeRatio(
+export function getSharpeRatio(
   avg: number,
   stdDev: number,
-  risklessBorrowingRate: number
+  risklessLendingRate: number
 ) {
-  return (avg - risklessBorrowingRate) / stdDev;
+  return (avg - risklessLendingRate) / stdDev;
 }
 
 export function getPortfoliosSharpeRatio(
   optimisationData: OptimisedValues | undefined,
-  risklessBorrowingRate: number
+  risklessLendingRate: number
 ): OptimisedValues | undefined {
   if (!optimisationData) return undefined;
 
@@ -130,7 +130,7 @@ export function getPortfoliosSharpeRatio(
         sharpeRatioAnnualised: getSharpeRatio(
           result.geometricMean,
           result.stdDev,
-          risklessBorrowingRate
+          risklessLendingRate
         ),
       })
     ),
@@ -271,9 +271,7 @@ export function getMaxDrawdownDetails(
     };
   }
 
-  console.log(drawdown);
-
-  const minDrawdown = _.minBy(drawdown, "value");
+  const minDrawdown = _.minBy(drawdown, "value") || {"value": 0, "tradeDate": 0};
   const bottomIdx = _.findIndex(drawdown, { value: minDrawdown.value });
   const bottomDate = drawdown[bottomIdx].tradeDate;
 
@@ -290,9 +288,6 @@ export function getMaxDrawdownDetails(
     postBottomSeries,
     (point: DrawdownData) => point.value >= 0
   );
-
-  console.log(recoveryPoint);
-
   return {
     percent: _.round(minDrawdown.value * PERCENTAGE_MULTIPLIER, 4),
     startDate: new Date(startDate).toISOString(),

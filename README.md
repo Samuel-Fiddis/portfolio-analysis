@@ -3,7 +3,7 @@
 
 A single page webapp for simple analysis and [Markowitz optimisation](https://www.investopedia.com/terms/m/modernportfoliotheory.asp) of Equity, ETF and Crypotcurrency asset portfolios.
 
-This tool is intended to work with the [Financial Modeling Prep](https://financialmodelingprep.com) api and should work with a set of 150,000+ Equities, ETFs and Cryptocurrencies globaly.
+This tool is intended to work with the [Financial Modeling Prep](https://financialmodelingprep.com) api and should work with a set of 150,000+ Equities, ETFs, Funds and Cryptocurrencies.
 
 ![Portfolio Analysis Tool](images/portfolio_analysis_example.png)
 

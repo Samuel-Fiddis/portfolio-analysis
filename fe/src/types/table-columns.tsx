@@ -38,6 +38,8 @@ export function getTableColumns<T extends InstrumentRow>({
       return getETFsColumns(options) as ColumnDef<T>[];
     case "Cryptos":
       return getCryptosColumns(options) as ColumnDef<T>[];
+    case "Funds":
+      return getETFsColumns(options) as ColumnDef<T>[];
     default:
       return [];
   }
@@ -68,6 +70,19 @@ function getCryptosColumns(options: CryptoOptions) {
       enableSorting: false,
       enableHiding: false,
     },
+        {
+      id: "instrumentType",
+      accessorKey: "instrumentType",
+      header: ({ column }: { column: Column<ETFsRow, unknown> }) => (
+        <DataTableColumnHeader column={column} title="Instrument Type" />
+      ),
+      cell: ({ cell }) => (
+        <div>{cell.getValue<ETFsRow["instrumentType"]>()}</div>
+      ),
+      meta: {
+        label: "Instrument Type",
+      },
+    },
        {
       id: "symbol",
       accessorKey: "symbol",
@@ -83,19 +98,6 @@ function getCryptosColumns(options: CryptoOptions) {
       },
       enableColumnFilter: true,
       enableHiding: false,
-    },
-    {
-      id: "instrumentType",
-      accessorKey: "instrumentType",
-      header: ({ column }: { column: Column<ETFsRow, unknown> }) => (
-        <DataTableColumnHeader column={column} title="Instrument Type" />
-      ),
-      cell: ({ cell }) => (
-        <div>{cell.getValue<ETFsRow["instrumentType"]>()}</div>
-      ),
-      meta: {
-        label: "Instrument Type",
-      },
     },
       {
       id: "exchange",

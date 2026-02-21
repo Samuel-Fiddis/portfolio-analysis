@@ -60,7 +60,7 @@ export interface CurrentPrice {
   timestamp: string;
 }
 
-export type InstrumentType = "Equities" | "ETFs" | "Cryptos";
+export type InstrumentType = "Equities" | "ETFs" | "Cryptos" | "Funds";
 
 export interface InstrumentRow {
   symbol: string;
@@ -126,8 +126,8 @@ export interface PricePoint {
 export type PeriodType = "yearly" | "monthly" | "daily";
 
 export interface OptimisationSettings {
-  risklessBorrowingRate: number;
-  // risklessLendingRate: number;
+  // risklessBorrowingRate: number;
+  risklessLendingRate: number;
   timePeriod: PeriodType;
   startTime: Date;
   endTime: Date;
@@ -146,21 +146,21 @@ export const OPTIMISATION_SETTINGS_DESCRIPTIONS: Record<
   keyof OptimisationSettings,
   OptimisationSettingDescription
 > = {
-  risklessBorrowingRate: {
-    title: "Riskless Borrowing Rate",
-    description:
-      "The riskless borrowing rate is the interest rate at which you can borrow money without taking on any risk.",
-    type: "number",
-    step: "0.01",
-    min: "0",
-  },
-  // risklessLendingRate: {
-  //   title: "Riskless Lending Rate",
-  //   description: "The riskless lending rate is the interest rate at which you can lend money without taking on any risk.",
+  // risklessBorrowingRate: {
+  //   title: "Riskless Borrowing Rate",
+  //   description:
+  //     "The riskless borrowing rate is the interest rate at which you can borrow money without taking on any risk. (e.g. by taking out a long term bank loan)",
   //   type: "number",
   //   step: "0.01",
   //   min: "0",
   // },
+  risklessLendingRate: {
+    title: "Riskless Lending Rate",
+    description: "The riskless lending rate is the interest rate at which you can theoretically invest money without taking on any risk (e.g. by investing in bonds or long term savings).",
+    type: "number",
+    step: "0.01",
+    min: "0",
+  },
   timePeriod: {
     title: "Time Period",
     description:
@@ -174,20 +174,20 @@ export const OPTIMISATION_SETTINGS_DESCRIPTIONS: Record<
   startTime: {
     title: "Start Time",
     description:
-      "The start time for the optimisation period. This should be set to the beginning of the year.",
+      "The start time for the optimisation period.",
     type: "date",
   },
   endTime: {
     title: "End Time",
     description:
-      "The end time for the optimisation period. This should be set to the end of the year.",
+      "The end time for the optimisation period.",
     type: "date",
   },
 };
 
 export const DEFAULT_OPTIMISATION_SETTINGS: OptimisationSettings = {
-  risklessBorrowingRate: 5.0,
-  // risklessLendingRate: 3.5,
+  // risklessBorrowingRate: 5.0,
+  risklessLendingRate: 3.5,
   timePeriod: "monthly",
   startTime: new Date(
     new Date().setFullYear(

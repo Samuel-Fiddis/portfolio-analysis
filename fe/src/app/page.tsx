@@ -172,9 +172,9 @@ function MainApp() {
     () =>
       getPortfoliosSharpeRatio(
         optimisationData,
-        optimisationSettings.risklessBorrowingRate
+        optimisationSettings.risklessLendingRate
       ) ?? ({} as OptimisedValues),
-    [optimisationData, optimisationSettings.risklessBorrowingRate]
+    [optimisationData, optimisationSettings.risklessLendingRate]
   );
 
   const selectedOptimisedPortfolio = getSelectedOptimisedPortfolio(
